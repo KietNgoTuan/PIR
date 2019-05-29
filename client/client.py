@@ -2,7 +2,6 @@ import socket as s
 import os
 import subprocess
 import sys
-import memcache
 import threading
 import tempfile
 

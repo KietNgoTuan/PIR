@@ -29,11 +29,11 @@ class ClientThread(threading.Thread):
     def run(self):  # cette fonction va gérer ce qu'on envoit et reçoit du client
 
         print("Connexion de %s %s" % (self.ip, self.port,))
-
-        response = self.clientsocket.recv(4096)  # reçoit le message sur un buffer de 4096 bits
-
-        if response != str():
-            response = response.decode("utf-8")
+        
+        response = self.clientsocket.recv(4096)  # reçoit le message sur un buffer de 4096 octets
+        response = response.decode("utf-8")
+        
+        while (response != "q"):
             print(response)
             files = os.listdir("../videos")
             for eachFile in files:
@@ -51,7 +51,10 @@ class ClientThread(threading.Thread):
                     file_in.close()
             if not FILE_FOUND:
                 clientsocket.send(b"File not found")
-
+                
+            response = self.clientsocket.recv(4096)
+            response = response.decode("utf-8")
+    
         print("Client déconnecté...")
 
 
@@ -79,8 +82,8 @@ except KeyboardInterrupt:
 except:
     for i in range(n):
         tabClients[i].close()
-print('Je ferme les connexions')
-sys.exit()
+        print('Je ferme les connexions')
+        sys.exit()
 pass
 
 
