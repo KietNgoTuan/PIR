@@ -3,6 +3,7 @@ import sys
 import os
 import threading
 import hashlib
+import time
 
 
 NB_CLIENT = 10
@@ -137,11 +138,10 @@ class ClientThread(threading.Thread):
             print(INDEX_VIDEOS[hash])
             full_size = int()
             with open(INDEX_VIDEOS[hash], 'rb') as file_in:
-                f = file_in.read(1024)
+                f = file_in.read(4096)
                 while (f):
-                    full_size += len(f)
                     broadcast_answer.sendto(f ,("<broadcast>", 40000))
-                    f = file_in.read(1024)
+                    f = file_in.read(4096)
 
             print(full_size)
             file_in.close()

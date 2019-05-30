@@ -19,7 +19,6 @@ full_data = str()
 if DIR_TEMP_NAME not in os.listdir(tempfile.gettempdir()):
     print(tempfile.gettempdir())
     os.mkdir(tempfile.gettempdir()+'/'+DIR_TEMP_NAME)
-    print("Done")
 
 tempfile.tempdir = tempfile.gettempdir()+"/"+DIR_TEMP_NAME
 print(tempfile.gettempdir())
@@ -147,20 +146,27 @@ while(True):
         adding_cache = hashed_message+"+"+str(list(ALL_TEMP_FILES.keys()))
         client.send(bytes(adding_cache, "utf-8"))
 
-        data, _ = receive_broadcast.recvfrom(1024)
-        full_data = len(data)
-        with open(tempfile.gettempdir()+"/"+hashed_message+".mp4", "wb") as mp4file:
-            while (True):
-                mp4file.write(data)
-                try:
-                    data,_ = receive_broadcast.recvfrom(1024)
-                    full_data += len(data)
-                except socket.timeout:
-                    receive_broadcast.close()
-                    break
-            mp4file.close()
+        data, addr = receive_broadcast.recvfrom(4096)
+        print(data)
+        # with open(tempfile.gettempdir()+"/"+hashed_message+".mp4", "wb") as mp4file:
+        #     while (True):
+        #         mp4file.write(data)
+        #         try:
+        #             data,_ = receive_broadcast.recvfrom(1024)
+        #             full_data += len(data)
+        #         except socket.timeout:
+        #             receive_broadcast.close()
+        #             break
+        #     mp4file.close()
 
-        print(full_data)
+        while True:
+            try:
+                full_data += len(data)
+                data = receive_broadcast.recvfrom(4096)
+            except socket.timeout:
+                break
+
+        print(len(full_data))
         # print(len(full_data))
         # print("All data received")
         # temp = tempfile.NamedTemporaryFile(prefix=hashed_message+'\'', suffix="", delete=False)
