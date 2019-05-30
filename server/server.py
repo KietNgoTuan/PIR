@@ -135,12 +135,15 @@ class ClientThread(threading.Thread):
             broadcast_answer.bind(('',BROADCAST_PORT))
             broadcast_answer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             print(INDEX_VIDEOS[hash])
+            full_size = int()
             with open(INDEX_VIDEOS[hash], 'rb') as file_in:
-                f = file_in.read(4096)
+                f = file_in.read(1024)
                 while (f):
-                    broadcast_answer.sendto(f ,('255.255.255.255', 40000))
-                    f = file_in.read(4096)
+                    full_size += len(f)
+                    broadcast_answer.sendto(f ,("<broadcast>", 40000))
+                    f = file_in.read(1024)
 
+            print(full_size)
             file_in.close()
             broadcast_answer.close()
 

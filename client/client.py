@@ -35,7 +35,6 @@ print(ALL_TEMP_FILES)
 
 receive_broadcast = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
 receive_broadcast.bind(('', BROADCAST_PORT))
-receive_broadcast.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 receive_broadcast.settimeout(1)
 
 hash = hashlib.md5()
@@ -148,19 +147,20 @@ while(True):
         adding_cache = hashed_message+"+"+str(list(ALL_TEMP_FILES.keys()))
         client.send(bytes(adding_cache, "utf-8"))
 
-
-        data, _ = receive_broadcast.recvfrom(4096)
-
+        data, _ = receive_broadcast.recvfrom(1024)
+        full_data = len(data)
         with open(tempfile.gettempdir()+"/"+hashed_message+".mp4", "wb") as mp4file:
             while (True):
                 mp4file.write(data)
                 try:
-                    data,_ = receive_broadcast.recvfrom(4096)
+                    data,_ = receive_broadcast.recvfrom(1024)
+                    full_data += len(data)
                 except socket.timeout:
                     receive_broadcast.close()
                     break
             mp4file.close()
 
+        print(full_data)
         # print(len(full_data))
         # print("All data received")
         # temp = tempfile.NamedTemporaryFile(prefix=hashed_message+'\'', suffix="", delete=False)
