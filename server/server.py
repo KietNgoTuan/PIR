@@ -140,6 +140,7 @@ class ClientThread(threading.Thread):
             with open(INDEX_VIDEOS[hash], 'rb') as file_in:
                 f = file_in.read(4096)
                 while (f):
+                    full_size += len(f)
                     broadcast_answer.sendto(f ,("<broadcast>", 40000))
                     f = file_in.read(4096)
 

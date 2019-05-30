@@ -33,6 +33,7 @@ for file in os.listdir(tempfile.gettempdir()):
 print(ALL_TEMP_FILES)
 
 receive_broadcast = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
+receive_broadcast.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 receive_broadcast.bind(('', BROADCAST_PORT))
 receive_broadcast.settimeout(1)
 
