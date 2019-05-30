@@ -3,7 +3,7 @@ import os
 import hashlib
 import tempfile
 
-HOST ="127.0.0.1" # Must be changed with the real server IP address
+HOST ="192.168.43.245" # Must be changed with the real server IP address
 PORT=25555
 BROADCAST_PORT = 40000
 DIR_TEMP_NAME = "PIRCaching"
