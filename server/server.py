@@ -141,10 +141,7 @@ class ClientThread(threading.Thread):
                 f = file_in.read(4096)
                 while (f):
                     full_size += len(f)
-                    try:
-                        broadcast_answer.sendto(f ,("<broadcast>", 40000))
-                    except:
-                        print("eeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")
+                    broadcast_answer.sendto(f ,("<broadcast>", 40000))
                     f = file_in.read(4096)
 
             print(full_size)
