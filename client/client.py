@@ -7,7 +7,7 @@ HOST ="127.0.0.1" # Must be changed with the real server IP address
 PORT=25555
 BROADCAST_PORT = 40000
 DIR_TEMP_NAME = "PIRCaching"
-ALL_TEMP_FILES = list()
+ALL_TEMP_FILES = dict()
 
 
 client= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -29,7 +29,7 @@ Code to check all files stored in temp memory
 """
 
 for file in os.listdir(tempfile.gettempdir()):
-    ALL_TEMP_FILES.append(file.split('.')[0])
+    ALL_TEMP_FILES[file.split(".")[0]] = tempfile.gettempdir()+"/"+file
 
 print(ALL_TEMP_FILES)
 
@@ -145,8 +145,8 @@ while(True):
     if hashed_message in ALL_TEMP_FILES:
         print("Got it in cache")
     else:
-
-        client.send(hashed_message.encode('utf-8'))
+        adding_cache = hashed_message+"+"+str(list(ALL_TEMP_FILES.keys()))
+        client.send(bytes(adding_cache, "utf-8"))
 
 
         data, _ = receive_broadcast.recvfrom(4096)
@@ -165,7 +165,7 @@ while(True):
         # print("All data received")
         # temp = tempfile.NamedTemporaryFile(prefix=hashed_message+'\'', suffix="", delete=False)
         # temp.write(bytes(full_data, "utf-8"))
-        ALL_TEMP_FILES.append(hashed_message)
+        ALL_TEMP_FILES[hashed_message] = tempfile.gettempdir()+hashed_message+".mp4"
 
     # if(data.decode('utf-8') != "File not found" and data != str()):
     #     data = data.decode('utf-8').split("+")

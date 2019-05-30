@@ -10,7 +10,10 @@ PORT = 25555
 BROADCAST_PORT = 44444
 
 INDEX_VIDEOS = dict()
+CLIENTS_CACHE = dict()
 
+
+mutex_clients_cache = threading.Lock()
 """
 Creation de l'indexage des vidéos 
 """
@@ -115,15 +118,24 @@ class ClientThread(threading.Thread):
         response = self.clientsocket.recv(4096)  # reçoit le message sur un buffer de 4096 bits
 
         if response != str():
-            response = response.decode("utf-8")
-            print(response)
+            hash = response.decode("utf-8").split("+")[0]
+            cache_information = response.decode("utf-8").split("+")[1]
+
+            mutex_clients_cache.acquire()
+            if ip not in CLIENTS_CACHE.keys():
+                CLIENTS_CACHE[ip] = cache_information
+            elif CLIENTS_CACHE[ip] != cache_information:
+                CLIENTS_CACHE[ip] = cache_information
+            mutex_clients_cache.release()
+
+
+            print(CLIENTS_CACHE)
 
             broadcast_answer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
             broadcast_answer.bind(('',BROADCAST_PORT))
-            # broadcast_answer.settimeout(1)
             broadcast_answer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-            print(INDEX_VIDEOS[response])
-            with open(INDEX_VIDEOS[response], 'rb') as file_in:
+            print(INDEX_VIDEOS[hash])
+            with open(INDEX_VIDEOS[hash], 'rb') as file_in:
                 f = file_in.read(4096)
                 while (f):
                     broadcast_answer.sendto(f ,('255.255.255.255', 40000))
