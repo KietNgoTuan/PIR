@@ -161,12 +161,7 @@ while(True):
                     break
             mp4file.close()
 
-        # while True:
-        #     try:
-        #         full_data += len(data)
-        #         data = receive_broadcast.recvfrom(4096)
-        #     except socket.timeout:
-        #         break
+
 
         print(full_data)
         # print(len(full_data))
