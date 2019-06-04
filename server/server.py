@@ -13,9 +13,12 @@ BROADCAST_PORT = 44444
 INDEX_VIDEOS = dict()
 CLIENTS_CACHE = dict()
 
+
 ONGOING_REQUESTS = set()
+QUITTING = "7694f4a66316e53c8cdd9d9954bd611d"
 
 SYNCHRONE_REQUEST = 2
+AMOUNT_CLIENT = int()
 
 
 
@@ -127,7 +130,7 @@ class ClientThread(threading.Thread):
         response = self.clientsocket.recv(4096)  # reçoit le message sur un buffer de 4096 bits
         global SYNCHRONE_REQUEST
 
-        if response != b'q' and SYNCHRONE_REQUEST > 0:
+        if response.decode("utf-8").split("+")[0] != QUITTING and SYNCHRONE_REQUEST > 0:
             print("Start while : {}".format(response.decode("utf-8")))
             hash = response.decode("utf-8").split("+")[0]
             print(hash)
@@ -150,13 +153,11 @@ class ClientThread(threading.Thread):
 
 
             if SYNCHRONE_REQUEST == 0:
-                print("About to send...")
-                print(ONGOING_REQUESTS)
+
                 ongoing_files = list()
                 for i in ONGOING_REQUESTS:
                     ongoing_files.append(i)
-                print("FIrst file : {}".format(INDEX_VIDEOS[ongoing_files[0]]))
-                print("Seconde file : {}".format(INDEX_VIDEOS[ongoing_files[1]]))
+
                 parent_path = os.getcwd().split("\\")
                 parent_path.pop()
                 encode(INDEX_VIDEOS[ongoing_files[0]], INDEX_VIDEOS[ongoing_files[1]],  "\\".join(parent_path)+"\\videos/sending.mp4")
@@ -169,7 +170,6 @@ class ClientThread(threading.Thread):
                     while (f):
                         broadcast_answer.sendto(f, ("<broadcast>", 40000))
                         f = file_in.read(1024)
-
                 file_in.close()
                 os.remove( "\\".join(parent_path)+"\\videos/sending.mp4")
                 broadcast_answer.close()
@@ -178,11 +178,8 @@ class ClientThread(threading.Thread):
 
 
 
-try:
-    tabClients = {}
-    n = 0
-
-    while True:
+while True:
+    try:
         s.listen(NB_CLIENT)
         print("En écoute...")
 
@@ -194,19 +191,15 @@ try:
         newClientThread = ClientThread(ip, port, clientsocket, mutex_handle_client)  # on lance un thread pour gérer le client
         newClientThread.start()
 
+        AMOUNT_CLIENT += 1
 
-        n += 1
 
+    except KeyboardInterrupt:
+        for i in range(n):
+            tabClients[i].close()
+        print('Je ferme les connexions')
+        sys.exit(0)
 
-except KeyboardInterrupt:
-    print('Exiting...')
-
-except:
-    for i in range(n):
-        tabClients[i].close()
-print('Je ferme les connexions')
-sys.exit()
-pass
 
 
 

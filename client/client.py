@@ -2,22 +2,22 @@ import socket
 import os
 import hashlib
 import tempfile
+import time
+import sys
 
-HOST ="192.168.43.245" # Must be changed with the real server IP address
+HOST ="127.0.0.1" # Must be changed with the real server IP address
 PORT=25555
 BROADCAST_PORT = 40000
 DIR_TEMP_NAME = "PIRCaching"
 ALL_TEMP_FILES = dict()
+QUEUE_CACHE = list() # LIST which represents the cache from the oldest to the newest
 
 
 client= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((HOST,PORT))
 client.settimeout(1)
-full_data = int()
-
 
 if DIR_TEMP_NAME not in os.listdir(tempfile.gettempdir()):
-    print(tempfile.gettempdir())
     os.mkdir(tempfile.gettempdir()+'/'+DIR_TEMP_NAME)
 
 tempfile.tempdir = tempfile.gettempdir()+"/"+DIR_TEMP_NAME
@@ -27,15 +27,23 @@ print(tempfile.gettempdir())
 Code to check all files stored in temp memory
 """
 
+def insert(file):
+    global QUEUE_CACHE
+    for i in range(len(QUEUE_CACHE)):
+        if (time.ctime(os.path.getmtime(tempfile.gettempdir()+"/"+file)) <=
+            time.ctime(os.path.getmtime(tempfile.gettempdir()+"/"+QUEUE_CACHE[i]))):
+                return QUEUE_CACHE.insert(i, file)
+    return QUEUE_CACHE.append(file)
+
+
 for file in os.listdir(tempfile.gettempdir()):
+    insert(file)
     ALL_TEMP_FILES[file.split(".")[0]] = tempfile.gettempdir()+"/"+file
 
-print(ALL_TEMP_FILES)
 
 receive_broadcast = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
 receive_broadcast.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 receive_broadcast.bind(('', BROADCAST_PORT))
-receive_broadcast.settimeout(1)
 
 hash = hashlib.md5()
 
@@ -118,57 +126,39 @@ def decode(f1,f2,f3):
         padding(f1,f2)
         encode(f1,f2,f3)
         depadding(f2,dif)
-        print("dsd")
     else:
         encode(f1,f2,f3)
         depadding(f3,size)
-        print("sss")
-# try:
-#     def __run__cache():
-#         subprocess.call("..\memcached\memcached.exe")
-#
-#     thread = threading.Thread(target =__run__cache)
-#     thread.start()
-#
-# except subprocess.CalledProcessError:
-#     sys.exit(-1)
-#
-# print("Defining cache")
-# cache = memcache.Client(["127.0.0.1:11211"], debug=0)
 
-while(True):
-    plain_message = input("Fichier à télecharger : ")
-    hash.update(bytes(plain_message, "utf-8"))
-    hashed_message = hash.hexdigest()
 
-    if hashed_message in ALL_TEMP_FILES:
-        print("Got it in cache")
-    else:
-        adding_cache = hashed_message+"+"+str(list(ALL_TEMP_FILES.keys()))
-        client.send(bytes(adding_cache, "utf-8"))
 
-        data, addr = receive_broadcast.recvfrom(4096)
-        print(data)
-        with open(tempfile.gettempdir()+"/"+hashed_message+".mp4", "wb") as mp4file:
-            while (True):
-                print("Data received : {}".format(data))
-                mp4file.write(data)
-                try:
+try:
+    while(True):
+            plain_message = input("Fichier à télecharger : ")
+            hash.update(bytes(plain_message, "utf-8"))
+            hashed_message = hash.hexdigest()
+
+            adding_cache = hashed_message+"+"+str(list(ALL_TEMP_FILES.keys()))
+            client.send(bytes(adding_cache, "utf-8"))
+
+            data, addr = receive_broadcast.recvfrom(1024)
+            with open(tempfile.gettempdir()+"/temporary.mp4", "wb") as mp4file:
+                while (True):
+                    mp4file.write(data)
+                    if len(data) != 1024:
+                        print("Fin de transmission")
+                        break
+
                     data,_ = receive_broadcast.recvfrom(1024)
-                    full_data += len(data)
-                except socket.timeout:
-                    receive_broadcast.close()
-                    break
-            mp4file.close()
 
+                mp4file.close()
+            decode(tempfile.gettempdir()+"/temporary.mp4", ALL_TEMP_FILES["6056755dead09087c46e89b9e3d5402d"], tempfile.gettempdir()+"/superçaamarché.mp4")
+            # os.remove(tempfile.gettempdir()+"/temporary.mp4")
 
-
-        print(full_data)
-        # print(len(full_data))
-        # print("All data received")
-        # temp = tempfile.NamedTemporaryFile(prefix=hashed_message+'\'', suffix="", delete=False)
-        # temp.write(bytes(full_data, "utf-8"))
-        ALL_TEMP_FILES[hashed_message] = tempfile.gettempdir()+hashed_message+".mp4"
+except KeyboardInterrupt:
+    print("Quitting...")
+    sys.exit(0)
+    # ALL_TEMP_FILES[hashed_message] = tempfile.gettempdir()+hashed_message+".mp4"
 
     # if(data.decode('utf-8') != "File not found" and data != str()):
     #     data = data.decode('utf-8').split("+")
