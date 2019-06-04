@@ -13,8 +13,16 @@ BROADCAST_PORT = 44444
 INDEX_VIDEOS = dict()
 CLIENTS_CACHE = dict()
 
+ONGOING_REQUESTS = set()
+
+SYNCHRONE_REQUEST = 2
+
+
 
 mutex_clients_cache = threading.Lock()
+mutex_ongoing_request = threading.Lock()
+mutex_handle_client = threading.Lock()
+
 """
 Creation de l'indexage des vidéos 
 """
@@ -104,22 +112,29 @@ def encode(f1,f2,f3):
 class ClientThread(threading.Thread):
     FILE_FOUND = False
 
-    def __init__(self, ip, port, clientsocket):
+    def __init__(self, ip, port, clientsocket, semaphoreClient):
 
         threading.Thread.__init__(self)
         self.ip = ip
         self.port = port
         self.clientsocket = clientsocket
+        self.semaphoreClient = semaphoreClient
         print("[+] Nouveau thread pour %s %s" % (self.ip, self.port,))
 
     def run(self):  # cette fonction va gérer ce qu'on envoit et reçoit du client
 
         print("Connexion de %s %s" % (self.ip, self.port,))
-
         response = self.clientsocket.recv(4096)  # reçoit le message sur un buffer de 4096 bits
+        global SYNCHRONE_REQUEST
 
-        if response != str():
+        if response != b'q' and SYNCHRONE_REQUEST > 0:
+            print("Start while : {}".format(response.decode("utf-8")))
             hash = response.decode("utf-8").split("+")[0]
+            print(hash)
+            with mutex_ongoing_request:
+                global ONGOING_REQUESTS
+                ONGOING_REQUESTS.add(hash)
+            print(ONGOING_REQUESTS)
             cache_information = response.decode("utf-8").split("+")[1]
 
             mutex_clients_cache.acquire()
@@ -129,27 +144,38 @@ class ClientThread(threading.Thread):
                 CLIENTS_CACHE[ip] = cache_information
             mutex_clients_cache.release()
 
-
-            print(CLIENTS_CACHE)
-
-            broadcast_answer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-            broadcast_answer.bind(('',BROADCAST_PORT))
-            broadcast_answer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-            print(INDEX_VIDEOS[hash])
-            full_size = int()
-            with open(INDEX_VIDEOS[hash], 'rb') as file_in:
-                f = file_in.read(4096)
-                while (f):
-                    full_size += len(f)
-                    broadcast_answer.sendto(f ,("<broadcast>", 40000))
-                    f = file_in.read(4096)
-
-            print(full_size)
-            file_in.close()
-            broadcast_answer.close()
+            with mutex_handle_client:
+                SYNCHRONE_REQUEST -= 1
+            print("Requetes restantes : {}".format(SYNCHRONE_REQUEST))
 
 
-        # print("Client déconnecté...")
+            if SYNCHRONE_REQUEST == 0:
+                print("About to send...")
+                print(ONGOING_REQUESTS)
+                ongoing_files = list()
+                for i in ONGOING_REQUESTS:
+                    ongoing_files.append(i)
+                print("FIrst file : {}".format(INDEX_VIDEOS[ongoing_files[0]]))
+                print("Seconde file : {}".format(INDEX_VIDEOS[ongoing_files[1]]))
+                parent_path = os.getcwd().split("\\")
+                parent_path.pop()
+                encode(INDEX_VIDEOS[ongoing_files[0]], INDEX_VIDEOS[ongoing_files[1]],  "\\".join(parent_path)+"\\videos/sending.mp4")
+                mutex_handle_client.acquire()
+                broadcast_answer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+                broadcast_answer.bind(('', BROADCAST_PORT))
+                broadcast_answer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                with open('../videos/sending.mp4', 'rb') as file_in:
+                    f = file_in.read(1024)
+                    while (f):
+                        broadcast_answer.sendto(f, ("<broadcast>", 40000))
+                        f = file_in.read(1024)
+
+                file_in.close()
+                os.remove( "\\".join(parent_path)+"\\videos/sending.mp4")
+                broadcast_answer.close()
+                SYNCHRONE_REQUEST = 2
+                mutex_handle_client.release()
+
 
 
 try:
@@ -161,11 +187,13 @@ try:
         print("En écoute...")
 
         (clientsocket, (ip, port)) = s.accept()  # on repere une connexion
+        clientsocket.setblocking(True)
 
         tabClients[n] = clientsocket  # on rentre dans le dictionnaire des clients
 
-        newClientThread = ClientThread(ip, port, clientsocket)  # on lance un thread pour gérer le client
+        newClientThread = ClientThread(ip, port, clientsocket, mutex_handle_client)  # on lance un thread pour gérer le client
         newClientThread.start()
+
 
         n += 1
 
