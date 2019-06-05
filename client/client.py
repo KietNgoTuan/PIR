@@ -72,6 +72,7 @@ def padding(f1,f2):
     return size
 
 def depadding(f,size):
+    print("Size depadding : {}".format(size))
     fi=open(f,"rb+")
     tab=fi.read()
     temp=tab[:size]
@@ -156,7 +157,7 @@ def decode(f1,f2,f3):
 
     else:
         encode(f1,f2,f3)
-        depadding(f3,min(os.stat(f1).st_size, os.stat(f2).st_size))
+        depadding(f3,size)
 
     couper(f3, 32)
 
