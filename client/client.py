@@ -4,6 +4,7 @@ import hashlib
 import tempfile
 import time
 import sys
+import shutil
 
 HOST ="127.0.0.1" # Must be changed with the real server IP address
 PORT=25555
@@ -78,6 +79,7 @@ def depadding(f,size):
     fi.truncate()
     fi.write(temp)
     fi.close()
+
 def couper(f,size):
         fi=open(f,"rb+")
         tab=fi.read()
@@ -90,47 +92,72 @@ def couper(f,size):
 
 
 def encode(f1, f2, f3):
-    smallsize = padding(f1, f2)
+    if os.stat(f1).st_size <= os.stat(f2).st_size:
+        shutil.copyfile(f1, "temp_file.mp4", follow_symlinks=True)
+        smallsize = padding("temp_file.mp4", f2)
+    else:
+        shutil.copyfile(f2, "temp_file.mp4", follow_symlinks=True)
+        smallsize = padding(f1, "temp_file.mp4")
+
+    print("Smallsize : {}".format(smallsize))
     s = "%032d" % int(bin(smallsize)[2:])
     tabsize = bytearray(s.encode())
-    size = os.stat(f1).st_size
-    result = bytearray(size)
-    with open(f1, 'rb') as file1:
-        with open(f2, 'rb') as file2:
-            with open(f3, 'wb') as file_out:
-                fi1 = bytearray(file1.read())
-                fi2 = bytearray(file2.read())
-                for byte1 in range(size):
-                    result[byte1] = (fi1[byte1] ^ fi2[byte1])
-                if smallsize == 0:
-                    tab = result
-                else:
+    size_f1 = os.stat(f1).st_size
+    size_f2 = os.stat(f2).st_size
+    result = bytearray(max(size_f1, size_f2))
+    if os.stat(f1).st_size < os.stat(f2).st_size:
+        with open("temp_file.mp4", 'rb') as file1:
+            with open(f2, 'rb') as file2:
+                with open(f3, 'wb') as file_out:
+                    fi1 = bytearray(file1.read())
+                    fi2 = bytearray(file2.read())
+
+                    for byte1 in range(max(size_f1, size_f2)):
+                        result[byte1] = (fi1[byte1] ^ fi2[byte1])
                     tab = tabsize + result
-                file_out.write(tab)
-                print(os.stat(f3).st_size)
-                return f3
+                    file_out.write(tab)
+
+        os.remove(os.getcwd() + "/temp_file.mp4")
+        return f3
+
+    else:
+        with open(f1, 'rb') as file1:
+            with open("temp_file.mp4", 'rb') as file2:
+                with open(f3, 'wb') as file_out:
+                    fi1 = bytearray(file1.read())
+                    fi2 = bytearray(file2.read())
+                    for byte1 in range(max(size_f1, size_f2)):
+                        result[byte1] = (fi1[byte1] ^ fi2[byte1])
+                    tab = tabsize + result
+                    file_out.write(tab)
+        os.remove(os.getcwd() + "/temp_file.mp4")
+        return f3
+
 
 
 def decode(f1,f2,f3):
     fi=open(f1,"rb")
     temp=fi.read()[:32]
+    print("Temp : {}".format(temp))
     tab=temp.decode()
+    print("Tab : {}".format(tab))
     print(int(tab,2))
     fi.close()
     size= int(tab,2)
     couper(f1,32)
+    #-------------------------------------------#
     dif=os.stat(f1).st_size-os.stat(f2).st_size
     print(os.stat(f1).st_size)
     print(os.stat(f2).st_size)
     if dif>0:
-        padding(f1,f2)
         encode(f1,f2,f3)
         depadding(f2,dif)
+
     else:
         encode(f1,f2,f3)
         depadding(f3,size)
 
-
+    couper(f3, 32)
 
 try:
     while(True):
@@ -152,7 +179,7 @@ try:
                     data,_ = receive_broadcast.recvfrom(1024)
 
                 mp4file.close()
-            decode(tempfile.gettempdir()+"/temporary.mp4", ALL_TEMP_FILES["6056755dead09087c46e89b9e3d5402d"], tempfile.gettempdir()+"/superçaamarché.mp4")
+                decode(tempfile.gettempdir()+"/temporary.mp4", ALL_TEMP_FILES["105423efc7504e3768979ae5e3c0f255"], tempfile.gettempdir()+"/finaly_file.mp4")
             # os.remove(tempfile.gettempdir()+"/temporary.mp4")
 
 except KeyboardInterrupt:

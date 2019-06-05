@@ -3,6 +3,7 @@ import sys
 import os
 import threading
 import hashlib
+import shutil
 import time
 
 
@@ -49,6 +50,27 @@ n = 0
 tabClients = dict()
 print(INDEX_VIDEOS)
 
+# def padding(f1,f2):
+#     size=0
+#     dif = os.stat(f1).st_size-os.stat(f2).st_size
+#     print(dif)
+#     tab = bytearray(abs(dif))
+#     for i in range(abs(dif)):
+#         tab[i]=0
+#     if dif == 0:
+#         size=0
+#     if dif >0:
+#         size=os.stat(f2).st_size
+#         file2 = open(f2, 'ab+')
+#         file2.write(tab)
+#         file2.close()
+#     elif dif<0:
+#         size=os.stat(f1).st_size
+#         file1 = open(f1, 'ab+')
+#         file1.write(tab)
+#         file1.close()
+#     return size
+
 def padding(f1,f2):
     size=0
     dif = os.stat(f1).st_size-os.stat(f2).st_size
@@ -70,14 +92,16 @@ def padding(f1,f2):
         file1.close()
     return size
 
-def depadding(f,size):
-    fi=open(f,"rb+")
-    tab=fi.read()
-    temp=tab[:size]
-    fi.seek(0)
-    fi.truncate()
-    fi.write(temp)
-    fi.close()
+    #
+# def depadding(f,size):
+#     fi=open(f,"rb+")
+#     tab=fi.read()
+#     temp=tab[:size]
+#     fi.seek(0)
+#     fi.truncate()
+#     fi.write(temp)
+#     fi.close()
+
 def couper(f,size):
         fi=open(f,"rb+")
         tab=fi.read()
@@ -88,28 +112,48 @@ def couper(f,size):
         fi.write(temp)
         fi.close()
 
-def encode(f1,f2,f3):
-        smallsize=padding(f1,f2)
-        s="%032d" % int(bin(smallsize)[2:])
-        tabsize=bytearray(s.encode())
-        size=os.stat(f1).st_size
-        result=bytearray(size)
-        with open(f1, 'rb') as file1:
+
+def encode(f1, f2, f3):
+    if os.stat(f1).st_size < os.stat(f2).st_size:
+        shutil.copyfile(f1, "temp_file.mp4", follow_symlinks=True)
+        smallsize = padding("temp_file.mp4", f2)
+    else:
+        shutil.copyfile(f2, "temp_file.mp4", follow_symlinks=True)
+        smallsize = padding(f1, "temp_file.mp4")
+
+    print("Smallsize : {}".format(smallsize))
+    s = "%032d" % int(bin(smallsize)[2:])
+    tabsize = bytearray(s.encode())
+    size_f1 = os.stat(f1).st_size
+    size_f2 = os.stat(f2).st_size
+    result = bytearray(max(size_f1, size_f2))
+    if os.stat(f1).st_size < os.stat(f2).st_size:
+        with open("temp_file.mp4", 'rb') as file1:
             with open(f2, 'rb') as file2:
                 with open(f3, 'wb') as file_out:
-                    fi1=bytearray(file1.read())
-                    fi2=bytearray(file2.read())
-                    for byte1 in range(size):
-                        result[byte1]=(fi1[byte1]^fi2[byte1])
-                    if smallsize == 0:
-                      tab=result
-                    else:
-                      tab=tabsize+result
+                    fi1 = bytearray(file1.read())
+                    fi2 = bytearray(file2.read())
+
+                    for byte1 in range(max(size_f1, size_f2)):
+                        result[byte1] = (fi1[byte1] ^ fi2[byte1])
+                    tab = tabsize + result
                     file_out.write(tab)
-                    print(os.stat(f3).st_size)
-                    return f3
 
+        os.remove(os.getcwd() + "/temp_file.mp4")
+        return f3
 
+    else:
+        with open(f1, 'rb') as file1:
+            with open("temp_file.mp4", 'rb') as file2:
+                with open(f3, 'wb') as file_out:
+                    fi1 = bytearray(file1.read())
+                    fi2 = bytearray(file2.read())
+                    for byte1 in range(max(size_f1, size_f2)):
+                        result[byte1] = (fi1[byte1] ^ fi2[byte1])
+                    tab = tabsize + result
+                    file_out.write(tab)
+        os.remove(os.getcwd() + "/temp_file.mp4")
+        return f3
 
 
 class ClientThread(threading.Thread):
