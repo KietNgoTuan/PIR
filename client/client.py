@@ -133,8 +133,8 @@ def decode(f1,f2,f3):
 
 
 try:
-    while(True):
-            plain_message = input("Fichier à télecharger : ")
+    plain_message = input("Fichier à télecharger : ")
+    while(True and plain_message!='q'):
             hash.update(bytes(plain_message, "utf-8"))
             hashed_message = hash.hexdigest()
 
@@ -154,6 +154,8 @@ try:
                 mp4file.close()
             decode(tempfile.gettempdir()+"/temporary.mp4", ALL_TEMP_FILES["6056755dead09087c46e89b9e3d5402d"], tempfile.gettempdir()+"/superçaamarché.mp4")
             # os.remove(tempfile.gettempdir()+"/temporary.mp4")
+            plain_message = input("Fichier à télecharger : ")
+    print('You are now disconnected')
 
 except KeyboardInterrupt:
     print("Quitting...")
