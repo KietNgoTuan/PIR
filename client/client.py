@@ -92,7 +92,7 @@ def couper(f,size):
 
 
 def encode(f1, f2, f3):
-    if os.stat(f1).st_size <= os.stat(f2).st_size:
+    if os.stat(f1).st_size < os.stat(f2).st_size:
         shutil.copyfile(f1, "temp_file.mp4", follow_symlinks=True)
         smallsize = padding("temp_file.mp4", f2)
     else:
@@ -104,6 +104,7 @@ def encode(f1, f2, f3):
     tabsize = bytearray(s.encode())
     size_f1 = os.stat(f1).st_size
     size_f2 = os.stat(f2).st_size
+    # ------------------------------------------ #
     result = bytearray(max(size_f1, size_f2))
     if os.stat(f1).st_size < os.stat(f2).st_size:
         with open("temp_file.mp4", 'rb') as file1:
@@ -155,7 +156,7 @@ def decode(f1,f2,f3):
 
     else:
         encode(f1,f2,f3)
-        depadding(f3,size)
+        depadding(f3,min(os.stat(f1).st_size, os.stat(f2).st_size))
 
     couper(f3, 32)
 
