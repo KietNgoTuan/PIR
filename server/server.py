@@ -219,6 +219,8 @@ class ClientThread(threading.Thread):
                 broadcast_answer.close()
                 SYNCHRONE_REQUEST = 2
                 mutex_handle_client.release()
+            
+        print('Client disconnected')
 
 
 
