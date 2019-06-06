@@ -4,6 +4,7 @@ import os
 import threading
 import hashlib
 import shutil
+import copy
 import time
 
 
@@ -50,88 +51,84 @@ tabClients = dict()
 print(INDEX_VIDEOS)
 
 def padding(f1,f2):
-    size=0
-    dif = os.stat(f1).st_size-os.stat(f2).st_size
-    print(dif)
+    dif = os.stat(f2).st_size-os.stat(f1).st_size
     tab = bytearray(abs(dif))
     for i in range(abs(dif)):
         tab[i]=0
-    if dif == 0:
-        size=0
-    if dif >0:
-        size=os.stat(f2).st_size
-        file2 = open(f2, 'ab+')
-        file2.write(tab)
-        file2.close()
-    elif dif<0:
-        size=os.stat(f1).st_size
-        file1 = open(f1, 'ab+')
-        file1.write(tab)
-        file1.close()
-    return size
 
-    #
-# def depadding(f,size):
-#     fi=open(f,"rb+")
-#     tab=fi.read()
-#     temp=tab[:size]
-#     fi.seek(0)
-#     fi.truncate()
-#     fi.write(temp)
-#     fi.close()
-
-def couper(f,size):
-        fi=open(f,"rb+")
-        tab=fi.read()
-
-        temp=tab[size:]
-        fi.seek(0)
-        fi.truncate()
-        fi.write(temp)
-        fi.close()
+    file2 = open(f1 , 'ab+')
+    file2.write(tab)
+    file2.close()
 
 
-def encode(f1, f2, f3):
-    if os.stat(f1).st_size < os.stat(f2).st_size:
-        shutil.copyfile(f1, "temp_file.mp4", follow_symlinks=True)
-        smallsize = padding("temp_file.mp4", f2)
-    else:
-        shutil.copyfile(f2, "temp_file.mp4", follow_symlinks=True)
-        smallsize = padding(f1, "temp_file.mp4")
+def depadding(f,size):
+    fi=open(f,"rb+")
+    tab=fi.read()
+    temp=tab[:size]
+    fi.seek(0)
+    fi.truncate()
+    fi.write(temp)
+    fi.close()
 
-    print("Smallsize : {}".format(smallsize))
-    s = "%032d" % int(bin(smallsize)[2:])
-    tabsize = bytearray(s.encode())
-    size_f1 = os.stat(f1).st_size
-    size_f2 = os.stat(f2).st_size
-    result = bytearray(max(size_f1, size_f2))
-    if os.stat(f1).st_size < os.stat(f2).st_size:
-        with open("temp_file.mp4", 'rb') as file1:
-            with open(f2, 'rb') as file2:
-                with open(f3, 'wb') as file_out:
-                    fi1 = bytearray(file1.read())
-                    fi2 = bytearray(file2.read())
 
-                    for byte1 in range(max(size_f1, size_f2)):
-                        result[byte1] = (fi1[byte1] ^ fi2[byte1])
-                    tab = tabsize + result
-                    file_out.write(tab)
+def get_largest_file(all_files):
+    """
+    Take all path and return its size and its position in the list
+    :param all_files: all concerned files
+    :return: PATH, SIZE (tuple)
+    """
+    max = int()
+    path = str()
+    for i in all_files:
+        if os.stat(i).st_size > max:
+                max = os.stat(i).st_size
+                path = i
+    return path, max
 
-        os.remove(os.getcwd() + "/temp_file.mp4")
-        return f3
+def encode(all_files, f3):
+    """
+    :param all_files: all files that must be XOR together
+    :param f3: outfile
+    :return: outfile
+    """
+    path , max_size = get_largest_file(all_files)
+    print(path)
+    print(max_size)
+    temp_list = copy.deepcopy(all_files)
+    print(temp_list)
+    temp_list.remove(path)
+    print(temp_list)
+    temp_file_list = list()
 
-    else:
-        with open(f1, 'rb') as file1:
-            with open("temp_file.mp4", 'rb') as file2:
-                with open(f3, 'wb') as file_out:
-                    fi1 = bytearray(file1.read())
-                    fi2 = bytearray(file2.read())
-                    for byte1 in range(max(size_f1, size_f2)):
-                        result[byte1] = (fi1[byte1] ^ fi2[byte1])
-                    tab = tabsize + result
-                    file_out.write(tab)
-        os.remove(os.getcwd() + "/temp_file.mp4")
-        return f3
+    for each_path in range(len(temp_list)):
+        temp_file = os.getcwd()+"/temp_file/"+temp_list[each_path].split("/")[-1].split(".")[0]+"_temp.mp4"
+        temp_file_list.append(temp_file)
+        shutil.copyfile(temp_list[each_path], temp_file_list[each_path],  follow_symlinks=True)
+        padding(temp_file_list[each_path], path)
+
+    temp_file_list.append(path)
+    result = bytearray(max_size)
+    list_file = list()
+    for each_path in temp_file_list:
+        f = open(each_path, 'rb')
+        list_file.append(f)
+    with open(f3, 'wb') as file_out:
+        byte_list = list()
+        for each_elt in range(len(all_files)):
+            byte_list.append(bytearray(list_file[each_elt].read()))
+
+        for byte1 in range(max_size):
+            result[byte1] = 0
+            for file in byte_list:
+                result[byte1] ^= file[byte1]
+        file_out.write(result)
+
+    for f in list_file:
+        f.close()
+    temp_file_list.pop()
+    for file in temp_file_list:
+        os.remove(file)
+
 
 
 class ClientThread(threading.Thread):
@@ -157,7 +154,8 @@ class ClientThread(threading.Thread):
             hash = response.decode("utf-8").split("+")[0]
             with mutex_ongoing_request:
                 global ONGOING_REQUESTS
-                ONGOING_REQUESTS.add(hash)
+                ONGOING_REQUESTS.add((hash, os.stat(INDEX_VIDEOS[hash]).st_size))
+                print(ONGOING_REQUESTS)
             print(ONGOING_REQUESTS)
             cache_information = response.decode("utf-8").split("+")[1]
 
@@ -176,12 +174,14 @@ class ClientThread(threading.Thread):
             if SYNCHRONE_REQUEST == 0:
 
                 ongoing_files = list()
-                for i in ONGOING_REQUESTS:
-                    ongoing_files.append(i)
+                for (i,_) in ONGOING_REQUESTS:
+                    ongoing_files.append(INDEX_VIDEOS[i])
+
+                print(ongoing_files)
 
                 parent_path = os.getcwd().split("\\")
                 parent_path.pop()
-                encode(INDEX_VIDEOS[ongoing_files[0]], INDEX_VIDEOS[ongoing_files[1]],  "\\".join(parent_path)+"\\videos/sending.mp4")
+                encode(ongoing_files,  "\\".join(parent_path)+"\\videos/sending.mp4")
                 mutex_handle_client.acquire()
                 broadcast_answer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
                 broadcast_answer.bind(('', BROADCAST_PORT))
@@ -191,6 +191,7 @@ class ClientThread(threading.Thread):
                 for elt in ONGOING_REQUESTS:
                     message += elt+"+"
 
+                print(message)
                 broadcast_answer.sendto(bytes(message, "utf-8"),  ("<broadcast>", 40000))
 
                 with open('../videos/sending.mp4', 'rb') as file_in:
