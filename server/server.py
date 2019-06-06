@@ -172,10 +172,11 @@ class ClientThread(threading.Thread):
 
 
             if SYNCHRONE_REQUEST == 0:
-
+                ongoing_files_size = list()
                 ongoing_files = list()
-                for (i,_) in ONGOING_REQUESTS:
+                for (i,size) in ONGOING_REQUESTS:
                     ongoing_files.append(INDEX_VIDEOS[i])
+                    ongoing_files_size.append((i,size))
 
                 print(ongoing_files)
 
@@ -188,8 +189,8 @@ class ClientThread(threading.Thread):
                 broadcast_answer.bind(('', BROADCAST_PORT))
                 broadcast_answer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-                message = "[FILES]:"
-                message += str(ongoing_files)
+                message = "[FILES]$"
+                message += str(ongoing_files_size)
 
 
                 print(message)

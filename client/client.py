@@ -38,10 +38,14 @@ def insert(file):
     return QUEUE_CACHE.append(file)
 
 
+
+
 for file in os.listdir(tempfile.gettempdir()):
     insert(file)
     ALL_TEMP_FILES[file.split(".")[0]] = tempfile.gettempdir()+"/"+file
 
+
+print(QUEUE_CACHE)
 
 receive_broadcast = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
 receive_broadcast.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -90,6 +94,7 @@ def encode(all_files, f3):
     :param f3: outfile
     :return: outfile
     """
+    print(all_files)
     path, max_size = get_largest_file(all_files)
     print(path)
     print(max_size)
@@ -102,6 +107,7 @@ def encode(all_files, f3):
     for each_path in range(len(temp_list)):
         temp_file = os.getcwd() + "/temp_file/" + temp_list[each_path].split("/")[-1].split(".")[0] + "_temp.mp4"
         temp_file_list.append(temp_file)
+        print(temp_file_list)
         shutil.copyfile(temp_list[each_path], temp_file_list[each_path], follow_symlinks=True)
         padding(temp_file_list[each_path], path)
 
@@ -124,9 +130,9 @@ def encode(all_files, f3):
 
     for f in list_file:
         f.close()
-    temp_file_list.pop()
     for file in temp_file_list:
-        os.remove(file)
+        if "_temp" in file:
+            os.remove(file)
 
 
 def decode(all_files, to_decode, f3):
@@ -152,12 +158,15 @@ try:
             data, addr = receive_broadcast.recvfrom(1024)
 
             if "[FILES]" in data.decode("utf-8"):
-                xor_files = data.decode("utf-8").split(":")[1]
+                xor_files = data.decode("utf-8").split("$")[1]
+                print(xor_files)
                 xor_files = eval(xor_files)
                 print(type(xor_files))
-                xor_files.pop()
                 for (file ,size) in xor_files:
+                    print("Hashed : {}".format(hashed_message))
+                    print(file)
                     if file == hashed_message:
+                        print("Receiving...size : {}".format(size))
                         SIZE_FILE = size
 
 
@@ -172,13 +181,18 @@ try:
 
 
                 mp4file.close()
-                if len(QUEUE_CACHE) == 3: # Fonctionnement de la FIFO
-                    os.remove(tempfile.gettempdir()+"/"+QUEUE_CACHE[0])
+
+                if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO
+                    os.remove(tempfile.gettempdir() + "/" + QUEUE_CACHE[0])
                     QUEUE_CACHE.pop(0)
 
-                QUEUE_CACHE.append(hashed_message+"mp4") #So far file is always saved
-                decode([ALL_TEMP_FILES["105423efc7504e3768979ae5e3c0f255"], ALL_TEMP_FILES["e21ec0e7dbfbe757e0930f95a077b434"]] ,tempfile.gettempdir()+"/temporary.mp4", tempfile.gettempdir()+"/"+ hashed_message+".mp4")
+                decode([ALL_TEMP_FILES["6056755dead09087c46e89b9e3d5402d"], ALL_TEMP_FILES["e21ec0e7dbfbe757e0930f95a077b434"]] ,tempfile.gettempdir()+"/temporary.mp4", tempfile.gettempdir()+"/"+ hashed_message+".mp4")
+                QUEUE_CACHE.append(hashed_message + "mp4")  # So far file is always saved
+
                 os.remove(tempfile.gettempdir()+"/temporary.mp4") #So far we'll remove this temporary file
+
+
+
             plain_message = input("Fichier à télecharger : ")
     print('You are now disconnected')
 
