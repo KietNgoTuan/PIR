@@ -174,8 +174,8 @@ try:
             data, addr = receive_broadcast.recvfrom(1024)
 
             if "[FILES]" in data.decode("utf-8"):
-                files = data.decode("utf-8").split(":")[1].split("+")
-                files.pop()
+                xor_files = data.decode("utf-8").split(":")[1].split("+")
+                xor_files.pop()
 
 
             with open(tempfile.gettempdir()+"/temporary.mp4", "wb") as mp4file:
