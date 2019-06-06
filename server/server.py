@@ -45,31 +45,9 @@ s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 s.bind(('', PORT))
 
 
-
 n = 0
 tabClients = dict()
 print(INDEX_VIDEOS)
-
-# def padding(f1,f2):
-#     size=0
-#     dif = os.stat(f1).st_size-os.stat(f2).st_size
-#     print(dif)
-#     tab = bytearray(abs(dif))
-#     for i in range(abs(dif)):
-#         tab[i]=0
-#     if dif == 0:
-#         size=0
-#     if dif >0:
-#         size=os.stat(f2).st_size
-#         file2 = open(f2, 'ab+')
-#         file2.write(tab)
-#         file2.close()
-#     elif dif<0:
-#         size=os.stat(f1).st_size
-#         file1 = open(f1, 'ab+')
-#         file1.write(tab)
-#         file1.close()
-#     return size
 
 def padding(f1,f2):
     size=0
@@ -177,7 +155,6 @@ class ClientThread(threading.Thread):
         if response.decode("utf-8").split("+")[0] != QUITTING and SYNCHRONE_REQUEST > 0:
             print("Start while : {}".format(response.decode("utf-8")))
             hash = response.decode("utf-8").split("+")[0]
-            print(hash)
             with mutex_ongoing_request:
                 global ONGOING_REQUESTS
                 ONGOING_REQUESTS.add(hash)
@@ -209,6 +186,13 @@ class ClientThread(threading.Thread):
                 broadcast_answer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
                 broadcast_answer.bind(('', BROADCAST_PORT))
                 broadcast_answer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+                message = "[FILES]:"
+                for elt in ONGOING_REQUESTS:
+                    message += elt+"+"
+
+                broadcast_answer.sendto(bytes(message, "utf-8"),  ("<broadcast>", 40000))
+
                 with open('../videos/sending.mp4', 'rb') as file_in:
                     f = file_in.read(1024)
                     while (f):

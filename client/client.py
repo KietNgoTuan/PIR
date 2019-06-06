@@ -152,8 +152,9 @@ def decode(f1,f2,f3):
     print(os.stat(f1).st_size)
     print(os.stat(f2).st_size)
     if dif>0:
+        print("Larger than...")
         encode(f1,f2,f3)
-        depadding(f2,dif)
+        depadding(f3,dif)
 
     else:
         encode(f1,f2,f3)
@@ -171,18 +172,29 @@ try:
             client.send(bytes(adding_cache, "utf-8"))
 
             data, addr = receive_broadcast.recvfrom(1024)
+
+            if "[FILES]" in data.decode("utf-8"):
+                files = data.decode("utf-8").split(":")[1].split("+")
+                files.pop()
+
+
             with open(tempfile.gettempdir()+"/temporary.mp4", "wb") as mp4file:
                 while (True):
+                    data,_ = receive_broadcast.recvfrom(1024)
                     mp4file.write(data)
                     if len(data) != 1024:
                         print("Fin de transmission")
                         break
 
-                    data,_ = receive_broadcast.recvfrom(1024)
 
                 mp4file.close()
-                decode(tempfile.gettempdir()+"/temporary.mp4", ALL_TEMP_FILES["105423efc7504e3768979ae5e3c0f255"], tempfile.gettempdir()+"/finaly_file.mp4")
-            # os.remove(tempfile.gettempdir()+"/temporary.mp4")
+                if len(QUEUE_CACHE) == 3: # Fonctionnement de la FIFO
+                    os.remove(tempfile.gettempdir()+"/"+QUEUE_CACHE[0])
+                    QUEUE_CACHE.pop(0)
+
+                QUEUE_CACHE.append(hashed_message+"mp4") #So far file is always saved
+                decode(tempfile.gettempdir()+"/temporary.mp4", ALL_TEMP_FILES["105423efc7504e3768979ae5e3c0f255"], tempfile.gettempdir()+"/"+ hashed_message+".mp4")
+                os.remove(tempfile.gettempdir()+"/temporary.mp4") #So far we'll remove this temporary file
             plain_message = input("Fichier à télecharger : ")
     print('You are now disconnected')
 
