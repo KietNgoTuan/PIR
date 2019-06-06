@@ -181,6 +181,7 @@ class ClientThread(threading.Thread):
 
                 parent_path = os.getcwd().split("\\")
                 parent_path.pop()
+                ongoing_files.append("C:/Users/matth/PycharmProjects/PIR/videos/BONGO.mp4")
                 encode(ongoing_files,  "\\".join(parent_path)+"\\videos/sending.mp4")
                 mutex_handle_client.acquire()
                 broadcast_answer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -188,8 +189,8 @@ class ClientThread(threading.Thread):
                 broadcast_answer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
                 message = "[FILES]:"
-                for elt in ONGOING_REQUESTS:
-                    message += elt+"+"
+                message += str(ongoing_files)
+
 
                 print(message)
                 broadcast_answer.sendto(bytes(message, "utf-8"),  ("<broadcast>", 40000))

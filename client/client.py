@@ -7,7 +7,7 @@ import sys
 import shutil
 import copy
 
-HOST ="127.0.0.1" # Must be changed with the real server IP address
+HOST ="192.168.1.1" # Must be changed with the real server IP address
 PORT=25555
 BROADCAST_PORT = 40000
 DIR_TEMP_NAME = "PIRCaching"
@@ -152,8 +152,9 @@ try:
             data, addr = receive_broadcast.recvfrom(1024)
 
             if "[FILES]" in data.decode("utf-8"):
-                xor_files = data.decode("utf-8").split(":")[1].split("+")
-                print(xor_files)
+                xor_files = data.decode("utf-8").split(":")[1]
+                xor_files = eval(xor_files)
+                print(type(xor_files))
                 xor_files.pop()
                 for (file ,size) in xor_files:
                     if file == hashed_message:
