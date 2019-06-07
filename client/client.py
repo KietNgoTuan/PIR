@@ -45,8 +45,6 @@ for file in os.listdir(tempfile.gettempdir()):
     ALL_TEMP_FILES[file.split(".")[0]] = tempfile.gettempdir()+"/"+file
 
 
-print(QUEUE_CACHE)
-
 receive_broadcast = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
 receive_broadcast.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 receive_broadcast.bind(('', BROADCAST_PORT))
@@ -149,6 +147,7 @@ def decode(all_files, to_decode, f3):
 try:
     plain_message = input("Fichier à télecharger : ")
     while(True and plain_message!='q'):
+
             hash.update(bytes(plain_message, "utf-8"))
             hashed_message = hash.hexdigest()
 
@@ -169,27 +168,25 @@ try:
                         print("Receiving...size : {}".format(size))
                         SIZE_FILE = size
 
+                        with open(tempfile.gettempdir()+"/temporary.mp4", "wb") as mp4file:
+                            while (True):
+                                data,_ = receive_broadcast.recvfrom(1024)
+                                mp4file.write(data)
+                                if len(data) != 1024:
+                                    print("Fin de transmission")
+                                    break
 
 
-            with open(tempfile.gettempdir()+"/temporary.mp4", "wb") as mp4file:
-                while (True):
-                    data,_ = receive_broadcast.recvfrom(1024)
-                    mp4file.write(data)
-                    if len(data) != 1024:
-                        print("Fin de transmission")
-                        break
+                            mp4file.close()
 
+                            if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO
+                                os.remove(tempfile.gettempdir() + "/" + QUEUE_CACHE[0])
+                                QUEUE_CACHE.pop(0)
 
-                mp4file.close()
+                            decode([ALL_TEMP_FILES["6056755dead09087c46e89b9e3d5402d"], ALL_TEMP_FILES["e21ec0e7dbfbe757e0930f95a077b434"]] ,tempfile.gettempdir()+"/temporary.mp4", tempfile.gettempdir()+"/"+ hashed_message+".mp4")
+                            QUEUE_CACHE.append(hashed_message + "mp4")  # So far file is always saved
 
-                if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO
-                    os.remove(tempfile.gettempdir() + "/" + QUEUE_CACHE[0])
-                    QUEUE_CACHE.pop(0)
-
-                decode([ALL_TEMP_FILES["6056755dead09087c46e89b9e3d5402d"], ALL_TEMP_FILES["e21ec0e7dbfbe757e0930f95a077b434"]] ,tempfile.gettempdir()+"/temporary.mp4", tempfile.gettempdir()+"/"+ hashed_message+".mp4")
-                QUEUE_CACHE.append(hashed_message + "mp4")  # So far file is always saved
-
-                os.remove(tempfile.gettempdir()+"/temporary.mp4") #So far we'll remove this temporary file
+                            os.remove(tempfile.gettempdir()+"/temporary.mp4") #So far we'll remove this temporary file
 
 
 
