@@ -1,28 +1,55 @@
 import socket
 import sys
 import os
+import json
 import threading
 import hashlib
 import shutil
 import copy
-import time
+import matrix.matrix as m
+import requests
+import mysql.connector # Must be manually installed (pip install mysql-connector)
 
 
 NB_CLIENT = 10
 PORT = 25555
 BROADCAST_PORT = 44444
+COEFF_LAN = 1.15
 
 INDEX_VIDEOS = dict()
-CLIENTS_CACHE = dict()
 
+CLIENTS_CACHE = dict()
+INDEX_REQUEST=list()
+MATRIX_CODAGE=list()
 
 ONGOING_REQUESTS = set()
+
+PRIVATE_YOUTUBE_KEY = "AIzaSyDaKk0TDBSmnHSqmPXpmRCV2PApz8rJzqo"
 QUITTING = "7694f4a66316e53c8cdd9d9954bd611d"
 
-SYNCHRONE_REQUEST = 2
+YOUTUBE_DICT = {
+    "BONGO" : "bHnuWN7z8gk",
+    "ALLAN" :  "_dK2tDK9grQ",
+    "TOUR" : "VcyFfcJbyeM",
+    "KALI" : "7ysFgElQtjI",
+    "NYAN" : "uKm2KN5gBiY"
+}
+
+SYNCHRONE_REQUEST = 5
 AMOUNT_CLIENT = int()
 
+# Initializing connection with mySQL
+try:
+    connection = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password = str()
+)
 
+    cursor = connection.cursor()
+except mysql.connector.errors:
+    print("Cannot reach database...")
+    sys.exit(0)
 
 mutex_clients_cache = threading.Lock()
 mutex_ongoing_request = threading.Lock()
@@ -32,14 +59,27 @@ mutex_handle_client = threading.Lock()
 Creation de l'indexage des vidéos 
 """
 
+cursor.execute("SELECT NOM FROM pir.videos;")
+all_names = [name for (name,) in cursor.fetchall()]
 for title in os.listdir("../videos"):
     hash = hashlib.md5()
     hash.update(bytes(title.split(".")[0], "utf-8"))
     path = os.getcwd().split("\\")
     path.pop()
     real_path = '\\'.join(path)+"/videos/"+title
+    if title.split(".")[0] not in all_names:
+        popularity = requests.get("https://www.googleapis.com/youtube/v3/videos?part=statistics&id="
+                              +str(YOUTUBE_DICT[title.split(".")[0]])+"&key="+PRIVATE_YOUTUBE_KEY).content
+        json_popularity = json.loads(popularity)
+        parameters = (title.split(".")[0],hash.hexdigest(), eval(json_popularity['items'][0]['statistics']['viewCount'])
+                      ,real_path)
+        request = "INSERT INTO PIR.VIDEOS (NOM,HASH_ID,POPULARITY,PATH) VALUES (%s,%s,%s,%s);"
+        cursor.execute(request, parameters)
+        connection.commit()
+
     INDEX_VIDEOS[hash.hexdigest()] = real_path
 
+FILE_ID=list(INDEX_VIDEOS.keys())
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -129,6 +169,18 @@ def encode(all_files, f3):
     for file in temp_file_list:
         os.remove(file)
 
+def MatrixCodage(matrix,file):
+    fichi=m.MatrixDifRequeste(matrix,file)
+    result=list()
+    if(m.RequestIsRelatif(fichi)==True):
+      xor=m.TraitementXOR(fichi)
+      mes=m.XORfinal(xor)
+      result=m.ChoixMsg(mes,file)
+    print("Result : {}".format(result))
+    for i in file:
+
+     result.append([i])
+    return result
 
 
 class ClientThread(threading.Thread):
@@ -152,12 +204,19 @@ class ClientThread(threading.Thread):
         if response.decode("utf-8").split("+")[0] != QUITTING and SYNCHRONE_REQUEST > 0:
             print("Start while : {}".format(response.decode("utf-8")))
             hash = response.decode("utf-8").split("+")[0]
+            index = FILE_ID.index(hash)  # Prendre l' indice du fichier demande
+            vector_cache = [0 for _ in range(len(FILE_ID))]
             with mutex_ongoing_request:
-                global ONGOING_REQUESTS
                 ONGOING_REQUESTS.add((hash, os.stat(INDEX_VIDEOS[hash]).st_size))
-                print(ONGOING_REQUESTS)
-            print(ONGOING_REQUESTS)
+                get_popularity_request = "SELECT POPULARITY FROM pir.videos WHERE HASH_ID='{}';".format(hash)
+                cursor.execute(get_popularity_request)
+                popularity, = cursor.fetchall()[0]
+                request = "UPDATE pir.videos SET POPULARITY='{}' WHERE HASH_ID='{}'".format(popularity*COEFF_LAN, hash)
+                cursor.execute(request)
+                connection.commit()
             cache_information = response.decode("utf-8").split("+")[1]
+            cache_information=eval(cache_information)
+
 
             mutex_clients_cache.acquire()
             if ip not in CLIENTS_CACHE.keys():
@@ -166,47 +225,91 @@ class ClientThread(threading.Thread):
                 CLIENTS_CACHE[ip] = cache_information
             mutex_clients_cache.release()
 
+            for cache in cache_information:
+                vector_cache[FILE_ID.index(cache)] = 1
+            INDEX_REQUEST.append((index, vector_cache))
             with mutex_handle_client:
                 SYNCHRONE_REQUEST -= 1
             print("Requetes restantes : {}".format(SYNCHRONE_REQUEST))
 
 
             if SYNCHRONE_REQUEST == 0:
-                ongoing_files_size = list()
-                ongoing_files = list()
-                for (i,size) in ONGOING_REQUESTS:
-                    ongoing_files.append(INDEX_VIDEOS[i])
-                    ongoing_files_size.append((i,size))
-
-                print(ongoing_files)
-
-                parent_path = os.getcwd().split("\\")
-                parent_path.pop()
-                ongoing_files.append("C:/Users/matth/PycharmProjects/PIR/videos/BONGO.mp4")
-                encode(ongoing_files,  "\\".join(parent_path)+"\\videos/sending.mp4")
-                mutex_handle_client.acquire()
                 broadcast_answer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
                 broadcast_answer.bind(('', BROADCAST_PORT))
                 broadcast_answer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-                message = "[FILES]$"
-                message += str(ongoing_files_size)
+                INDEX_REQUEST.sort(key=lambda x: x[0])
+                index_files = list()
+                for index in INDEX_REQUEST:
+                    MATRIX_CODAGE.append(index[1])
+                    index_files.append(index[0])
+                # res to be send (optimal one)
+                res = MatrixCodage(MATRIX_CODAGE, index_files)
+                message = "[SENDINGS]$"+str(len(res))
+                broadcast_answer.sendto(bytes(message, "utf-8"), ("<broadcast>", 40000))
 
+                print(MATRIX_CODAGE)
 
-                print(message)
-                broadcast_answer.sendto(bytes(message, "utf-8"),  ("<broadcast>", 40000))
+                ongoing_files_size = list()
+                ongoing_files = list()
+                parent_path = os.getcwd().split("\\")
+                parent_path.pop()
 
-                with open('../videos/sending.mp4', 'rb') as file_in:
-                    f = file_in.read(1024)
-                    while (f):
-                        broadcast_answer.sendto(f, ("<broadcast>", 40000))
+                print("ONGOING REQUEST : {}".format(ONGOING_REQUESTS))
+                for (i,size) in ONGOING_REQUESTS:
+                    ongoing_files.append(INDEX_VIDEOS[i])
+                    ongoing_files_size.append((i,size))
+                    print("FILES ABOUT TO BE SEND : {}".format(ongoing_files_size))
+
+                if len(ongoing_files) == 1:
+                    path_to_send = [a for a in ongoing_files][0]
+                    message = "[FILES]$"
+                    message += str([a for a in ONGOING_REQUESTS])
+                    print("Messgae in ongoing_files == 1")
+                    with open(path_to_send, 'rb') as file_in:
                         f = file_in.read(1024)
-                file_in.close()
-                os.remove( "\\".join(parent_path)+"\\videos/sending.mp4")
-                broadcast_answer.close()
-                SYNCHRONE_REQUEST = 2
-                mutex_handle_client.release()
-            
+                        while (f):
+                            broadcast_answer.sendto(f, ("<broadcast>", 40000))
+                            f = file_in.read(1024)
+                    file_in.close()
+
+                else:
+
+                    for each_coding in res:
+                        print("Each coding : {}".format(res[0]))
+                        # List index : each_coding
+                        if len(each_coding) == 1:
+                            path_to_send = INDEX_VIDEOS[FILE_ID[each_coding[0]]]
+
+
+                        else :
+                            path_to_send = "\\".join(parent_path) + "\\videos/sending.mp4"
+                            to_encode = [INDEX_VIDEOS[FILE_ID[index]] for index in each_coding]
+                            print("Files to encode : {}".format(to_encode))
+                            encode(to_encode, path_to_send)
+                            print("Size of sending : {}".format(os.stat(path_to_send).st_size))
+
+                        message = "[FILES]$"
+
+                        message += str([(FILE_ID[index],
+                                         os.stat(INDEX_VIDEOS[FILE_ID[index]]).st_size) for index in each_coding])
+                        print("Message regarding files : {}".format(message))
+                        broadcast_answer.sendto(bytes(message, "utf-8"),  ("<broadcast>", 40000))
+
+                        with open(path_to_send, 'rb') as file_in:
+                            f = file_in.read(1024)
+                            while (f):
+                                broadcast_answer.sendto(f, ("<broadcast>", 40000))
+                                f = file_in.read(1024)
+                        file_in.close()
+                        try:
+                            os.remove( "\\".join(parent_path)+"\\videos/sending.mp4")
+                        except FileNotFoundError:
+                            pass
+
+                    broadcast_answer.close()
+                    SYNCHRONE_REQUEST = 5
+
         print('Client disconnected')
 
 

@@ -154,58 +154,76 @@ try:
             adding_cache = hashed_message+"+"+str(list(ALL_TEMP_FILES.keys()))
             client.send(bytes(adding_cache, "utf-8"))
 
-            data, addr = receive_broadcast.recvfrom(1024)
-
-            if "[FILES]" in data.decode("utf-8"):
-                xor_files = data.decode("utf-8").split("$")[1]
-                print(xor_files)
-                xor_files = eval(xor_files)
-                print(type(xor_files))
-                for (file ,size) in xor_files:
-                    print("Hashed : {}".format(hashed_message))
-                    print(file)
-                    if file == hashed_message:
-                        print("Receiving...size : {}".format(size))
-                        SIZE_FILE = size
-
-                        with open(tempfile.gettempdir()+"/temporary.mp4", "wb") as mp4file:
-                            while (True):
-                                data,_ = receive_broadcast.recvfrom(1024)
-                                mp4file.write(data)
-                                if len(data) != 1024:
-                                    print("Fin de transmission")
-                                    break
+            decode_data = str()
+            data, addr = receive_broadcast.recvfrom(1024) #Receiving amount of sendings
+            sending = eval(data.decode("utf-8").split("$")[1])
+            print("Amount of sending (client) : {}".format(sending))
 
 
-                            mp4file.close()
+            for _ in range(sending):
+                print("Sending")
+                is_readable = False
+                while(not is_readable):
+                    try:
+                        data, _ = receive_broadcast.recvfrom(1024)
+                        decode_data = data.decode("utf-8")
+                        if "[FILES]" in decode_data:
+                            is_readable = True
+                    except UnicodeDecodeError:
+                        pass
 
-                            if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO
-                                os.remove(tempfile.gettempdir() + "/" + QUEUE_CACHE[0])
-                                QUEUE_CACHE.pop(0)
+                if is_readable:
+                    xor_files = decode_data.split("$")[1]
+                    decodable = True
+                    xor_files = eval(xor_files)
+                    print(type(xor_files))
+                    for (file ,size) in xor_files:
+                        print("Hashed : {}".format(hashed_message))
+                        print(file)
+                        if file == hashed_message:
+                            print("Receiving...size : {}".format(size))
+                            SIZE_FILE = size
+                            decode_xor_files = list()
+                            # Possible to decode the file I asked for
+                            if len(xor_files) != 1:
+                                decode_xor_files = copy.deepcopy(xor_files)
+                                decode_xor_files.remove((file,size))
+                                cached_file = os.listdir(tempfile.gettempdir())
+                                for (file,_) in decode_xor_files:
+                                    print("XOR_FILE : {}".format(decode_xor_files))
+                                    print(cached_file)
+                                    if not file+".mp4" in cached_file:
+                                        decodable = False
+                                        break
 
-                            decode([ALL_TEMP_FILES["6056755dead09087c46e89b9e3d5402d"], ALL_TEMP_FILES["e21ec0e7dbfbe757e0930f95a077b434"]] ,tempfile.gettempdir()+"/temporary.mp4", tempfile.gettempdir()+"/"+ hashed_message+".mp4")
-                            QUEUE_CACHE.append(hashed_message + "mp4")  # So far file is always saved
+                            if decodable:
+                                with open(tempfile.gettempdir()+"/temporary.mp4", "wb") as mp4file:
+                                    while (True):
+                                        data,_ = receive_broadcast.recvfrom(1024)
+                                        mp4file.write(data)
+                                        if len(data) != 1024:
+                                            print("Fin de transmission")
+                                            break
 
-                            os.remove(tempfile.gettempdir()+"/temporary.mp4") #So far we'll remove this temporary file
+                                    mp4file.close()
 
+
+                                if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO a modifier
+                                    os.remove(tempfile.gettempdir() + "/" + QUEUE_CACHE[0])
+                                    QUEUE_CACHE.pop(0)
+
+                                if len(xor_files) == 1:
+                                    os.rename(tempfile.gettempdir() + "/temporary.mp4",
+                                              tempfile.gettempdir() + "/" + hashed_message + ".mp4")
+                                else:
+                                    decode([ALL_TEMP_FILES[file] for (file,_) in decode_xor_files] ,tempfile.gettempdir()+"/temporary.mp4", tempfile.gettempdir()+"/"+ hashed_message+".mp4")
+                                    os.remove(tempfile.gettempdir()+"/temporary.mp4") #So far we'll remove this temporary file
+
+                                QUEUE_CACHE.append(hashed_message + "mp4")
 
 
             plain_message = input("Fichier à télecharger : ")
-    print('You are now disconnected')
 
 except KeyboardInterrupt:
     print("Quitting...")
     sys.exit(0)
-    # ALL_TEMP_FILES[hashed_message] = tempfile.gettempdir()+hashed_message+".mp4"
-
-    # if(data.decode('utf-8') != "File not found" and data != str()):
-    #     data = data.decode('utf-8').split("+")
-    #     full_data += data[1].split(":")[1]
-    #     print(full_data)
-    #     print(data[0].split(":")[1])
-    #     print(data[1].split(":")[1])
-    #     cache.set(message, data[1].split(":")[1])
-    #     print(cache.get(message))
-
-
-
