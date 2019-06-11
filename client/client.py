@@ -7,7 +7,7 @@ import sys
 import shutil
 import copy
 
-HOST ="192.168.1.1" # Must be changed with the real server IP address
+HOST ="127.0.0.1" # Must be changed with the real server IP address
 PORT=25555
 BROADCAST_PORT = 40000
 DIR_TEMP_NAME = "PIRCaching"
