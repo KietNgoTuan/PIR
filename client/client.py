@@ -7,12 +7,12 @@ import sys
 import shutil
 import copy
 
-HOST ="127.0.0.1" # Must be changed with the real server IP address
+HOST ="192.168.1.1" # Must be changed with the real server IP address
 PORT=25555
 BROADCAST_PORT = 40000
 DIR_TEMP_NAME = "PIRCaching"
 ALL_TEMP_FILES = dict()
-QUEUE_CACHE = list() # LIST which represents the cache from the oldest to the newest
+QUEUE_CACHE = list() # LIST which represents the cache from the less popular to the most one (tuple)
 SIZE_FILE = int()
 
 client= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -29,22 +29,20 @@ print(tempfile.gettempdir())
 Code to check all files stored in temp memory
 """
 
-def insert(file):
+def insert(tuple):
+    hash,pop = tuple
     global QUEUE_CACHE
-    for i in range(len(QUEUE_CACHE)):
-        if (time.ctime(os.path.getmtime(tempfile.gettempdir()+"/"+file)) <=
-            time.ctime(os.path.getmtime(tempfile.gettempdir()+"/"+QUEUE_CACHE[i]))):
-                return QUEUE_CACHE.insert(i, file)
-    return QUEUE_CACHE.append(file)
-
-
+    for (queue_hash, queue_pop) in QUEUE_CACHE:
+        if pop < queue_pop:
+                return QUEUE_CACHE.insert(QUEUE_CACHE.index((queue_hash, queue_pop)), (hash,pop))
+    return QUEUE_CACHE.append((hash,pop))
 
 
 for file in os.listdir(tempfile.gettempdir()):
-    insert(file)
+    QUEUE_CACHE.append((file.split(".")[0], 1))
     ALL_TEMP_FILES[file.split(".")[0]] = tempfile.gettempdir()+"/"+file
 
-
+print(QUEUE_CACHE)
 receive_broadcast = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
 receive_broadcast.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 receive_broadcast.bind(('', BROADCAST_PORT))
@@ -177,7 +175,7 @@ try:
                     decodable = True
                     xor_files = eval(xor_files)
                     print(type(xor_files))
-                    for (file ,size) in xor_files:
+                    for (file ,size, pop) in xor_files:
                         print("Hashed : {}".format(hashed_message))
                         print(file)
                         if file == hashed_message:
@@ -208,10 +206,6 @@ try:
                                     mp4file.close()
 
 
-                                if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO a modifier
-                                    os.remove(tempfile.gettempdir() + "/" + QUEUE_CACHE[0])
-                                    QUEUE_CACHE.pop(0)
-
                                 if len(xor_files) == 1:
                                     os.rename(tempfile.gettempdir() + "/temporary.mp4",
                                               tempfile.gettempdir() + "/" + hashed_message + ".mp4")
@@ -219,9 +213,13 @@ try:
                                     decode([ALL_TEMP_FILES[file] for (file,_) in decode_xor_files] ,tempfile.gettempdir()+"/temporary.mp4", tempfile.gettempdir()+"/"+ hashed_message+".mp4")
                                     os.remove(tempfile.gettempdir()+"/temporary.mp4") #So far we'll remove this temporary file
 
-                                QUEUE_CACHE.append(hashed_message + "mp4")
+                                if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO a modifier
+                                    print("QUEUE CACHE : {}".format(QUEUE_CACHE))
+                                    os.remove(tempfile.gettempdir() + "/" + QUEUE_CACHE[0])
+                                    QUEUE_CACHE.pop(0)
+                                insert((hashed_message,pop))
 
-
+            print(QUEUE_CACHE)
             plain_message = input("Fichier à télecharger : ")
 
 except KeyboardInterrupt:

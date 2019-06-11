@@ -14,7 +14,7 @@ import mysql.connector # Must be manually installed (pip install mysql-connector
 NB_CLIENT = 10
 PORT = 25555
 BROADCAST_PORT = 44444
-COEFF_LAN = 1.15
+COEFF_LAN = 1.05
 
 INDEX_VIDEOS = dict()
 
@@ -29,13 +29,13 @@ QUITTING = "7694f4a66316e53c8cdd9d9954bd611d"
 
 YOUTUBE_DICT = {
     "BONGO" : "bHnuWN7z8gk",
-    "ALLAN" :  "_dK2tDK9grQ",
-    "TOUR" : "VcyFfcJbyeM",
-    "KALI" : "7ysFgElQtjI",
-    "NYAN" : "uKm2KN5gBiY"
+    "ALLAN" : "_dK2tDK9grQ",
+    "TOUR" :  "VcyFfcJbyeM",
+    "KALI" :  "7ysFgElQtjI",
+    "NYAN" :  "uKm2KN5gBiY"
 }
 
-SYNCHRONE_REQUEST = 5
+SYNCHRONE_REQUEST = 1
 AMOUNT_CLIENT = int()
 
 # Initializing connection with mySQL
@@ -71,7 +71,10 @@ for title in os.listdir("../videos"):
         popularity = requests.get("https://www.googleapis.com/youtube/v3/videos?part=statistics&id="
                               +str(YOUTUBE_DICT[title.split(".")[0]])+"&key="+PRIVATE_YOUTUBE_KEY).content
         json_popularity = json.loads(popularity)
-        parameters = (title.split(".")[0],hash.hexdigest(), eval(json_popularity['items'][0]['statistics']['viewCount'])
+        parameters = (title.split(".")[0],hash.hexdigest(),
+                      (0.5*eval(json_popularity['items'][0]['statistics']['viewCount'])+
+                       eval(json_popularity['items'][0]['statistics']["likeCount"]))/
+                      (1.5*eval(json_popularity['items'][0]['statistics']['dislikeCount']))
                       ,real_path)
         request = "INSERT INTO PIR.VIDEOS (NOM,HASH_ID,POPULARITY,PATH) VALUES (%s,%s,%s,%s);"
         cursor.execute(request, parameters)
@@ -166,6 +169,7 @@ def encode(all_files, f3):
     for f in list_file:
         f.close()
     temp_file_list.pop()
+    print("Temp file lisr : {}".format(temp_file_list))
     for file in temp_file_list:
         os.remove(file)
 
@@ -178,7 +182,6 @@ def MatrixCodage(matrix,file):
       result=m.ChoixMsg(mes,file)
     print("Result : {}".format(result))
     for i in file:
-
      result.append([i])
     return result
 
@@ -217,17 +220,26 @@ class ClientThread(threading.Thread):
             cache_information = response.decode("utf-8").split("+")[1]
             cache_information=eval(cache_information)
 
-
+            print("Cache information : {}".format(cache_information))
             mutex_clients_cache.acquire()
             if ip not in CLIENTS_CACHE.keys():
                 CLIENTS_CACHE[ip] = cache_information
             elif CLIENTS_CACHE[ip] != cache_information:
                 CLIENTS_CACHE[ip] = cache_information
             mutex_clients_cache.release()
-
             for cache in cache_information:
-                vector_cache[FILE_ID.index(cache)] = 1
-            INDEX_REQUEST.append((index, vector_cache))
+                print(cache)
+                vector_cache[FILE_ID.index(cache)]=1
+            if INDEX_REQUEST == []:
+                INDEX_REQUEST.append([index, 0, vector_cache])
+            else:
+                check = 0
+                for indice in INDEX_REQUEST:
+                    if indice[0] == index:
+                        indice[1] = indice[1] + 1
+                        check = 1
+                if check == 0:
+                    INDEX_REQUEST.append([index, 0, vector_cache])
             with mutex_handle_client:
                 SYNCHRONE_REQUEST -= 1
             print("Requetes restantes : {}".format(SYNCHRONE_REQUEST))
@@ -238,13 +250,21 @@ class ClientThread(threading.Thread):
                 broadcast_answer.bind(('', BROADCAST_PORT))
                 broadcast_answer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-                INDEX_REQUEST.sort(key=lambda x: x[0])
+
                 index_files = list()
+                index_rest = list()
                 for index in INDEX_REQUEST:
-                    MATRIX_CODAGE.append(index[1])
-                    index_files.append(index[0])
+                    if index[1] == 0:
+                        MATRIX_CODAGE.append(index[2])
+                        index_files.append(index[0])
+                    else:
+                        index_rest.append(index[0])
                 # res to be send (optimal one)
                 res = MatrixCodage(MATRIX_CODAGE, index_files)
+                if len(index_rest) != 0:
+                    for i in index_rest:
+                        res.append([i])
+
                 message = "[SENDINGS]$"+str(len(res))
                 broadcast_answer.sendto(bytes(message, "utf-8"), ("<broadcast>", 40000))
 
@@ -264,8 +284,13 @@ class ClientThread(threading.Thread):
                 if len(ongoing_files) == 1:
                     path_to_send = [a for a in ongoing_files][0]
                     message = "[FILES]$"
-                    message += str([a for a in ONGOING_REQUESTS])
-                    print("Messgae in ongoing_files == 1")
+                    to_send = list()
+                    for (a,b) in ONGOING_REQUESTS:
+                        cursor.execute("SELECT POPULARITY FROM pir.videos WHERE HASH_ID='{}'".format(a))
+                        pop, = cursor.fetchall()[0]
+                        to_send.append((a,b,pop))
+                    message += str(to_send)
+                    broadcast_answer.sendto(bytes(message, "utf-8"), ("<broadcast>", 40000))
                     with open(path_to_send, 'rb') as file_in:
                         f = file_in.read(1024)
                         while (f):
@@ -290,9 +315,13 @@ class ClientThread(threading.Thread):
                             print("Size of sending : {}".format(os.stat(path_to_send).st_size))
 
                         message = "[FILES]$"
+                        for index in each_coding:
 
-                        message += str([(FILE_ID[index],
-                                         os.stat(INDEX_VIDEOS[FILE_ID[index]]).st_size) for index in each_coding])
+                            cursor.excecute("SELECT POPULARITY FROM pir.videos WHERE HASH_ID='{}';"
+                                                      .format(INDEX_VIDEOS[index]))
+                            pop,= cursor.fetchall()[0]
+                            message += str([(FILE_ID[index],
+                                         os.stat(INDEX_VIDEOS[FILE_ID[index]]).st_size, pop)])
                         print("Message regarding files : {}".format(message))
                         broadcast_answer.sendto(bytes(message, "utf-8"),  ("<broadcast>", 40000))
 
@@ -308,7 +337,7 @@ class ClientThread(threading.Thread):
                             pass
 
                     broadcast_answer.close()
-                    SYNCHRONE_REQUEST = 5
+                    SYNCHRONE_REQUEST = 1
 
         print('Client disconnected')
 
@@ -333,7 +362,6 @@ while True:
     except KeyboardInterrupt:
         for i in range(n):
             tabClients[i].close()
-        print('Je ferme les connexions')
         sys.exit(0)
 
 

@@ -45,7 +45,6 @@ def TraitementXOR(file):
     resultat =list()
     check =list()
     c=0
-
     for j in keys:
         for value in file[j]:
             check.append(value)
@@ -53,7 +52,7 @@ def TraitementXOR(file):
             resultat.append([j,value])
     for i in check:
         for val in file[i]:
-            print(val)
+            print("Val : {}".format(val))
             if val in check:
                 c=resultat.index(SearchOrigin(temp,i))
                 resultat[c].append(val)
@@ -62,7 +61,6 @@ def TraitementXOR(file):
                 check.append(val)
                 temp.append([i,val] )
                 resultat.append([i,val] )
-    # print(resultat)
     return resultat
 
 
@@ -72,24 +70,19 @@ def sorte(list):
     return list
 
 
-#
-
-
-
 def XORfinal(list):
     sorte(list)
+    print(list)
     liste=[]
     for i in range(len(list)):
-        liste.append([list[i]])
+        #liste.append([list[i]])
         for j in range(i,len (list)):
             if list[i]!=list[j]:
-
                 if len(set(list[i]+list[j]))==(len(list[i])+len(list[j])):
                     liste[i].append(list[j])
     sorte(liste)
     del liste[1:]
         # S  eulement maintenant apres ajouter fonction travail avec la cache pour trouver des msg correspond le plus possible
-
     return liste
 
 
