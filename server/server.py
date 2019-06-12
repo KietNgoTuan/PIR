@@ -35,7 +35,7 @@ YOUTUBE_DICT = {
     "NYAN" :  "uKm2KN5gBiY"
 }
 
-SYNCHRONE_REQUEST = 1
+SYNCHRONE_REQUEST = 4
 AMOUNT_CLIENT = int()
 
 # Initializing connection with mySQL
@@ -204,7 +204,7 @@ class ClientThread(threading.Thread):
         response = self.clientsocket.recv(4096)  # reçoit le message sur un buffer de 4096 bits
         global SYNCHRONE_REQUEST
 
-        if response.decode("utf-8").split("+")[0] != QUITTING and SYNCHRONE_REQUEST > 0:
+        while response.decode("utf-8").split("+")[0] != QUITTING:
             print("Start while : {}".format(response.decode("utf-8")))
             hash = response.decode("utf-8").split("+")[0]
             index = FILE_ID.index(hash)  # Prendre l' indice du fichier demande
@@ -250,7 +250,7 @@ class ClientThread(threading.Thread):
                 broadcast_answer.bind(('', BROADCAST_PORT))
                 broadcast_answer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-
+                INDEX_REQUEST.sort(key=lambda x: x[0])
                 index_files = list()
                 index_rest = list()
                 for index in INDEX_REQUEST:
@@ -337,9 +337,9 @@ class ClientThread(threading.Thread):
                             pass
 
                     broadcast_answer.close()
-                    SYNCHRONE_REQUEST = 1
+                    SYNCHRONE_REQUEST = 4
 
-        print('Client disconnected')
+            response = self.clientsocket.recv(4096)
 
 
 

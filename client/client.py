@@ -149,7 +149,8 @@ try:
             hash.update(bytes(plain_message, "utf-8"))
             hashed_message = hash.hexdigest()
 
-            adding_cache = hashed_message+"+"+str(list(ALL_TEMP_FILES.keys()))
+            print("Your cache : {}".format(QUEUE_CACHE))
+            adding_cache = hashed_message+"+"+str([id for (id,_) in QUEUE_CACHE])
             client.send(bytes(adding_cache, "utf-8"))
 
             decode_data = str()
@@ -216,8 +217,13 @@ try:
                                 if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO a modifier
                                     print("QUEUE CACHE : {}".format(QUEUE_CACHE))
                                     os.remove(tempfile.gettempdir() + "/" + QUEUE_CACHE[0])
+                                    to_delete,_ = QUEUE_CACHE[0]
                                     QUEUE_CACHE.pop(0)
+                                    del ALL_TEMP_FILES[to_delete]
+
                                 insert((hashed_message,pop))
+                                ALL_TEMP_FILES[hashed_message] = tempfile.gettempdir()+hashed_message+".mp4"
+
 
             print(QUEUE_CACHE)
             plain_message = input("Fichier à télecharger : ")
