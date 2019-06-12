@@ -15,9 +15,11 @@ ALL_TEMP_FILES = dict()
 QUEUE_CACHE = list() # LIST which represents the cache from the less popular to the most one (tuple)
 SIZE_FILE = int()
 
-client= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client, addr= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((HOST,PORT))
 client.settimeout(1)
+print(addr)
+
 
 if DIR_TEMP_NAME not in os.listdir(tempfile.gettempdir()):
     os.mkdir(tempfile.gettempdir()+'/'+DIR_TEMP_NAME)
@@ -39,7 +41,7 @@ def insert(tuple):
 
 
 for file in os.listdir(tempfile.gettempdir()):
-    QUEUE_CACHE.append((file.split(".")[0], 1))
+    # QUEUE_CACHE.append((file.split(".")[0], 1))
     ALL_TEMP_FILES[file.split(".")[0]] = tempfile.gettempdir()+"/"+file
 
 print(QUEUE_CACHE)

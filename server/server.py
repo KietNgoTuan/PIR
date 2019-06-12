@@ -247,6 +247,7 @@ class ClientThread(threading.Thread):
 
 
             if SYNCHRONE_REQUEST == 0:
+                print("About to send synchrone request")
                 broadcast_answer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
                 broadcast_answer.bind(('', BROADCAST_PORT))
                 broadcast_answer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
