@@ -9,7 +9,7 @@ import copy
 import matrix.matrix as m
 import requests
 import mysql.connector # Must be manually installed (pip install mysql-connector)
-
+import time
 
 NB_CLIENT = 10
 PORT = 25555
@@ -17,11 +17,11 @@ BROADCAST_PORT = 44444
 COEFF_LAN = 1.05
 
 INDEX_VIDEOS = dict()
-
+INDEX_REQUEST = list()
 CLIENTS_CACHE = dict()
-INDEX_REQUEST=list()
 MATRIX_CODAGE=list()
-
+tdebut = time.time()
+deltat = time.time()
 ONGOING_REQUESTS = set()
 
 PRIVATE_YOUTUBE_KEY = "AIzaSyDaKk0TDBSmnHSqmPXpmRCV2PApz8rJzqo"
@@ -244,7 +244,7 @@ class ClientThread(threading.Thread):
             with mutex_handle_client:
                 SYNCHRONE_REQUEST -= 1
             print("Requetes restantes : {}".format(SYNCHRONE_REQUEST))
-
+            full_size = int()
 
             if SYNCHRONE_REQUEST == 0:
                 print("About to send synchrone request")
@@ -252,12 +252,15 @@ class ClientThread(threading.Thread):
                 broadcast_answer.bind(('', BROADCAST_PORT))
                 broadcast_answer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
+                print("Index Request : {}".format(INDEX_REQUEST))
                 INDEX_REQUEST.sort(key=lambda x: x[0])
                 index_files = list()
                 index_rest = list()
                 for index in INDEX_REQUEST:
+                    print("Index : {}".format(index))
                     if index[1] == 0:
                         MATRIX_CODAGE.append(index[2])
+                        print(index[0])
                         index_files.append(index[0])
                     else:
                         index_rest.append(index[0])
@@ -266,7 +269,6 @@ class ClientThread(threading.Thread):
                 if len(index_rest) != 0:
                     for i in index_rest:
                         res.append([i])
-
                 message = "[SENDINGS]$"+str(len(res))
                 broadcast_answer.sendto(bytes(message, "utf-8"), ("<broadcast>", 40000))
 
@@ -276,10 +278,10 @@ class ClientThread(threading.Thread):
                 ongoing_files = list()
                 parent_path = os.getcwd().split("\\")
                 parent_path.pop()
-
                 print("ONGOING REQUEST : {}".format(ONGOING_REQUESTS))
                 for (i,size) in ONGOING_REQUESTS:
                     ongoing_files.append(INDEX_VIDEOS[i])
+                    full_size += size
                     ongoing_files_size.append((i,size))
                     print("FILES ABOUT TO BE SEND : {}".format(ongoing_files_size))
 
@@ -292,6 +294,7 @@ class ClientThread(threading.Thread):
                         pop, = cursor.fetchall()[0]
                         to_send.append((a,b,pop))
                     message += str(to_send)
+                    tdebut = time.time()
                     broadcast_answer.sendto(bytes(message, "utf-8"), ("<broadcast>", 40000))
                     with open(path_to_send, 'rb') as file_in:
                         f = file_in.read(1024)
@@ -301,13 +304,12 @@ class ClientThread(threading.Thread):
                     file_in.close()
 
                 else:
-
+                    print("Res : {}".format(res))
                     for each_coding in res:
                         print("Each coding : {}".format(res[0]))
                         # List index : each_coding
                         if len(each_coding) == 1:
                             path_to_send = INDEX_VIDEOS[FILE_ID[each_coding[0]]]
-
 
                         else :
                             path_to_send = "\\".join(parent_path) + "\\videos/sending.mp4"
@@ -315,7 +317,7 @@ class ClientThread(threading.Thread):
                             print("Files to encode : {}".format(to_encode))
                             encode(to_encode, path_to_send)
                             print("Size of sending : {}".format(os.stat(path_to_send).st_size))
-
+                        tdebut = time.time()
                         message = "[FILES]$"
                         for index in each_coding:
                             cursor.execute("SELECT POPULARITY FROM pir.videos WHERE HASH_ID='{}';".format(FILE_ID[index]))
@@ -335,10 +337,16 @@ class ClientThread(threading.Thread):
                             os.remove( "\\".join(parent_path)+"\\videos/sending.mp4")
                         except FileNotFoundError:
                             pass
+                        global  deltat
+                        deltat += time.time()-tdebut
 
                     broadcast_answer.close()
+                    del INDEX_REQUEST[:]
+                    del MATRIX_CODAGE[:]
+                    del index_files[:]
+                    del index_rest[:]
                     SYNCHRONE_REQUEST = 4
-
+            print("Temps pris en seconde pour répondre à tout le monde : {}".format(deltat/1000))
             response = self.clientsocket.recv(4096)
 
 

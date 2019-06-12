@@ -143,6 +143,7 @@ def decode(all_files, to_decode, f3):
 try:
     plain_message = input("Fichier à télecharger : ")
     while(True and plain_message!='q'):
+            time_init = time.time()
             hash = hashlib.md5()
             print(plain_message)
             hash.update(bytes(plain_message, "utf-8"))
@@ -217,9 +218,12 @@ try:
                                 if len(xor_files) == 1:
                                     os.rename(tempfile.gettempdir() + "/temporary.mp4",
                                               tempfile.gettempdir() + "/" + hashed_message + ".mp4")
+                                    print("Temps pris pour réception fichier : {}".format((time.time()-time_init)/1000))
                                 else:
                                     decode([ALL_TEMP_FILES[file] for (file,_) in decode_xor_files] ,tempfile.gettempdir()+"/temporary.mp4", tempfile.gettempdir()+"/"+ hashed_message+".mp4")
+                                    print("Temps pris pour réception fichier : {}".format((time.time()-time_init)/1000))
                                     os.remove(tempfile.gettempdir()+"/temporary.mp4") #So far we'll remove this temporary file
+
 
                                 if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO a modifier
                                     print("QUEUE CACHE : {}".format(QUEUE_CACHE))
@@ -231,8 +235,6 @@ try:
                                 insert((hashed_message,pop))
                                 ALL_TEMP_FILES[hashed_message] = tempfile.gettempdir()+hashed_message+".mp4"
 
-
-            print(QUEUE_CACHE)
             plain_message = input("Fichier à télecharger : ")
 
 except KeyboardInterrupt:
