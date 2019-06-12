@@ -162,11 +162,12 @@ try:
                 except UnicodeDecodeError:
                     pass
 
-            print("Amount of sending (client) : {}".format(sending))
             time_init = time.time()
             sending = eval(decode_data.decode("utf-8").split("$")[1])
-
-            for _ in range(sending):
+            print("Amount of sending (client) : {}".format(sending))
+            i = int()
+            found = False
+            while  i < sending and not found:
                 print("Sending")
                 is_readable = False
                 while(not is_readable):
@@ -174,7 +175,9 @@ try:
                         data, _ = receive_broadcast.recvfrom(1024)
                         decode_data = data.decode("utf-8")
                         if "[FILES]" in decode_data:
+                            print("Received files")
                             is_readable = True
+
                     except UnicodeDecodeError:
                         pass
 
@@ -213,7 +216,7 @@ try:
 
                                     mp4file.close()
 
-
+                                found = True
                                 if len(xor_files) == 1:
                                     os.rename(tempfile.gettempdir() + "/temporary.mp4",
                                               tempfile.gettempdir() + "/" + hashed_message + ".mp4")
@@ -232,8 +235,8 @@ try:
                                     del ALL_TEMP_FILES[to_delete]
 
                                 insert((hashed_message,pop))
-                                ALL_TEMP_FILES[hashed_message] = tempfile.gettempdir()+hashed_message+".mp4"
-
+                                ALL_TEMP_FILES[hashed_message] = tempfile.gettempdir()+"/"+hashed_message+".mp4"
+                i += 1
             plain_message = input("Fichier à télecharger : ")
 
 except KeyboardInterrupt:

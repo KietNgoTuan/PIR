@@ -20,7 +20,6 @@ INDEX_VIDEOS = dict()
 INDEX_REQUEST = list()
 CLIENTS_CACHE = dict()
 MATRIX_CODAGE=list()
-tdebut = time.time()
 deltat = float()
 ONGOING_REQUESTS = set()
 
@@ -300,14 +299,17 @@ class ClientThread(threading.Thread):
                         pop, = cursor.fetchall()[0]
                         to_send.append((a,b,pop))
                     message += str(to_send)
-                    global tdebut
                     tdebut = time.time()
+                    print("T debut in unique send : {}".format(tdebut))
                     broadcast_answer.sendto(bytes(message, "utf-8"), ("<broadcast>", 40000))
                     with open(path_to_send, 'rb') as file_in:
                         f = file_in.read(1024)
                         while (f):
                             broadcast_answer.sendto(f, ("<broadcast>", 40000))
                             f = file_in.read(1024)
+                    inter_t = (time.time() - tdebut)
+                    global deltat
+                    deltat += inter_t
                     file_in.close()
 
                 else:
@@ -323,7 +325,6 @@ class ClientThread(threading.Thread):
                             print("Files to encode : {}".format(to_encode))
                             encode(to_encode, path_to_send)
                             print("Size of sending : {}".format(os.stat(path_to_send).st_size))
-                        tdebut = time.time()
                         message = "[FILES]$"
                         value = list()
                         for index in each_coding:
@@ -334,6 +335,7 @@ class ClientThread(threading.Thread):
                         message += str(value)
                         print("Message regarding files : {}".format(message))
                         broadcast_answer.sendto(bytes(message, "utf-8"),  ("<broadcast>", 40000))
+                        tdebut = time.time()
 
                         with open(path_to_send, 'rb') as file_in:
                             f = file_in.read(1024)
@@ -345,7 +347,6 @@ class ClientThread(threading.Thread):
                             os.remove( "\\".join(parent_path)+"\\videos/sending.mp4")
                         except FileNotFoundError:
                             pass
-                        global  deltat
                         inter_t = (time.time()-tdebut)
                         deltat += inter_t
 
@@ -355,7 +356,7 @@ class ClientThread(threading.Thread):
                     del index_files[:]
                     del index_rest[:]
                     SYNCHRONE_REQUEST = 4
-                    print("Temps pris en seconde pour répondre à tout le monde : {}".format(deltat))
+                print("Temps pris en seconde pour répondre à tout le monde : {}".format(deltat))
             response = self.clientsocket.recv(4096)
 
 
