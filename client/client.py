@@ -47,8 +47,6 @@ receive_broadcast = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
 receive_broadcast.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 receive_broadcast.bind(('', BROADCAST_PORT))
 
-hash = hashlib.md5()
-
 def padding(f1,f2):
     dif = os.stat(f2).st_size-os.stat(f1).st_size
     tab = bytearray(abs(dif))
@@ -145,6 +143,7 @@ def decode(all_files, to_decode, f3):
 try:
     plain_message = input("Fichier à télecharger : ")
     while(True and plain_message!='q'):
+            hash = hashlib.md5()
             print(plain_message)
             hash.update(bytes(plain_message, "utf-8"))
             hashed_message = hash.hexdigest()
