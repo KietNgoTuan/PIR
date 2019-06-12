@@ -143,7 +143,6 @@ def decode(all_files, to_decode, f3):
 try:
     plain_message = input("Fichier à télecharger : ")
     while(True and plain_message!='q'):
-            time_init = time.time()
             hash = hashlib.md5()
             print(plain_message)
             hash.update(bytes(plain_message, "utf-8"))
@@ -164,7 +163,7 @@ try:
                     pass
 
             print("Amount of sending (client) : {}".format(sending))
-
+            time_init = time.time()
             sending = eval(decode_data.decode("utf-8").split("$")[1])
 
             for _ in range(sending):
