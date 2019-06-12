@@ -145,10 +145,10 @@ def decode(all_files, to_decode, f3):
 try:
     plain_message = input("Fichier à télecharger : ")
     while(True and plain_message!='q'):
-
+            print(plain_message)
             hash.update(bytes(plain_message, "utf-8"))
             hashed_message = hash.hexdigest()
-
+            print("Hash : {}".format(hashed_message))
             print("Your cache : {}".format(QUEUE_CACHE))
             adding_cache = hashed_message+"+"+str([id for (id,_) in QUEUE_CACHE])
             client.send(bytes(adding_cache, "utf-8"))

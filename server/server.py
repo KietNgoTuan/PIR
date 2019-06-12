@@ -207,6 +207,7 @@ class ClientThread(threading.Thread):
         while response.decode("utf-8").split("+")[0] != QUITTING:
             print("Start while : {}".format(response.decode("utf-8")))
             hash = response.decode("utf-8").split("+")[0]
+            print("Hash : {}".format(hash))
             index = FILE_ID.index(hash)  # Prendre l' indice du fichier demande
             vector_cache = [0 for _ in range(len(FILE_ID))]
             with mutex_ongoing_request:
@@ -316,9 +317,7 @@ class ClientThread(threading.Thread):
 
                         message = "[FILES]$"
                         for index in each_coding:
-
-                            cursor.excecute("SELECT POPULARITY FROM pir.videos WHERE HASH_ID='{}';"
-                                                      .format(INDEX_VIDEOS[index]))
+                            cursor.execute("SELECT POPULARITY FROM pir.videos WHERE HASH_ID='{}';".format(FILE_ID[index]))
                             pop,= cursor.fetchall()[0]
                             message += str([(FILE_ID[index],
                                          os.stat(INDEX_VIDEOS[FILE_ID[index]]).st_size, pop)])
