@@ -220,7 +220,7 @@ try:
                                               tempfile.gettempdir() + "/" + hashed_message + ".mp4")
                                     print("Temps pris pour réception fichier : {}".format((time.time()-time_init)))
                                 else:
-                                    decode([ALL_TEMP_FILES[file] for (file,_) in decode_xor_files] ,tempfile.gettempdir()+"/temporary.mp4", tempfile.gettempdir()+"/"+ hashed_message+".mp4")
+                                    decode([ALL_TEMP_FILES[file] for (file,_,_) in decode_xor_files] ,tempfile.gettempdir()+"/temporary.mp4", tempfile.gettempdir()+"/"+ hashed_message+".mp4")
                                     print("Temps pris pour réception fichier : {}".format((time.time()-time_init)))
                                     os.remove(tempfile.gettempdir()+"/temporary.mp4") #So far we'll remove this temporary file
 
