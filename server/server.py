@@ -21,7 +21,7 @@ INDEX_REQUEST = list()
 CLIENTS_CACHE = dict()
 MATRIX_CODAGE=list()
 tdebut = time.time()
-deltat = time.time()
+deltat = float()
 ONGOING_REQUESTS = set()
 
 PRIVATE_YOUTUBE_KEY = "AIzaSyDaKk0TDBSmnHSqmPXpmRCV2PApz8rJzqo"
@@ -180,9 +180,10 @@ def MatrixCodage(matrix,file):
       xor=m.TraitementXOR(fichi)
       mes=m.XORfinal(xor)
       result=m.ChoixMsg(mes,file)
-    print("Result : {}".format(result))
-    for i in file:
-     result.append([i])
+    else:
+        for i in file:
+            result.append([i])
+    print("Result"+str(result))
     return result
 
 
@@ -266,10 +267,15 @@ class ClientThread(threading.Thread):
                         index_rest.append(index[0])
                 # res to be send (optimal one)
                 res = MatrixCodage(MATRIX_CODAGE, index_files)
+                print(" ir "+str(index_rest))
+                print("if"+str(index_files))
                 if len(index_rest) != 0:
                     for i in index_rest:
                         res.append([i])
+
+                print("RES : {}".format(res))
                 message = "[SENDINGS]$"+str(len(res))
+                print("Message : {}".format(message))
                 broadcast_answer.sendto(bytes(message, "utf-8"), ("<broadcast>", 40000))
 
                 print(MATRIX_CODAGE)
@@ -294,6 +300,7 @@ class ClientThread(threading.Thread):
                         pop, = cursor.fetchall()[0]
                         to_send.append((a,b,pop))
                     message += str(to_send)
+                    global tdebut
                     tdebut = time.time()
                     broadcast_answer.sendto(bytes(message, "utf-8"), ("<broadcast>", 40000))
                     with open(path_to_send, 'rb') as file_in:
@@ -306,7 +313,6 @@ class ClientThread(threading.Thread):
                 else:
                     print("Res : {}".format(res))
                     for each_coding in res:
-                        print("Each coding : {}".format(res[0]))
                         # List index : each_coding
                         if len(each_coding) == 1:
                             path_to_send = INDEX_VIDEOS[FILE_ID[each_coding[0]]]
@@ -319,11 +325,13 @@ class ClientThread(threading.Thread):
                             print("Size of sending : {}".format(os.stat(path_to_send).st_size))
                         tdebut = time.time()
                         message = "[FILES]$"
+                        value = list()
                         for index in each_coding:
                             cursor.execute("SELECT POPULARITY FROM pir.videos WHERE HASH_ID='{}';".format(FILE_ID[index]))
                             pop,= cursor.fetchall()[0]
-                            message += str([(FILE_ID[index],
-                                         os.stat(INDEX_VIDEOS[FILE_ID[index]]).st_size, pop)])
+                            value.append((FILE_ID[index],
+                                         os.stat(INDEX_VIDEOS[FILE_ID[index]]).st_size, pop))
+                        message += str(value)
                         print("Message regarding files : {}".format(message))
                         broadcast_answer.sendto(bytes(message, "utf-8"),  ("<broadcast>", 40000))
 
@@ -338,7 +346,8 @@ class ClientThread(threading.Thread):
                         except FileNotFoundError:
                             pass
                         global  deltat
-                        deltat += time.time()-tdebut
+                        inter_t = (time.time()-tdebut)
+                        deltat += inter_t
 
                     broadcast_answer.close()
                     del INDEX_REQUEST[:]
@@ -346,7 +355,7 @@ class ClientThread(threading.Thread):
                     del index_files[:]
                     del index_rest[:]
                     SYNCHRONE_REQUEST = 4
-            print("Temps pris en seconde pour répondre à tout le monde : {}".format(deltat/1000))
+                    print("Temps pris en seconde pour répondre à tout le monde : {}".format(deltat))
             response = self.clientsocket.recv(4096)
 
 

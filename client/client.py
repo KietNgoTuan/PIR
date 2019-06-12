@@ -194,9 +194,9 @@ try:
                             # Possible to decode the file I asked for
                             if len(xor_files) != 1:
                                 decode_xor_files = copy.deepcopy(xor_files)
-                                decode_xor_files.remove((file,size))
+                                decode_xor_files.remove((file,size,pop))
                                 cached_file = os.listdir(tempfile.gettempdir())
-                                for (file,_) in decode_xor_files:
+                                for (file,_,_) in decode_xor_files:
                                     print("XOR_FILE : {}".format(decode_xor_files))
                                     print(cached_file)
                                     if not file+".mp4" in cached_file:
@@ -218,17 +218,17 @@ try:
                                 if len(xor_files) == 1:
                                     os.rename(tempfile.gettempdir() + "/temporary.mp4",
                                               tempfile.gettempdir() + "/" + hashed_message + ".mp4")
-                                    print("Temps pris pour réception fichier : {}".format((time.time()-time_init)/1000))
+                                    print("Temps pris pour réception fichier : {}".format((time.time()-time_init)))
                                 else:
                                     decode([ALL_TEMP_FILES[file] for (file,_) in decode_xor_files] ,tempfile.gettempdir()+"/temporary.mp4", tempfile.gettempdir()+"/"+ hashed_message+".mp4")
-                                    print("Temps pris pour réception fichier : {}".format((time.time()-time_init)/1000))
+                                    print("Temps pris pour réception fichier : {}".format((time.time()-time_init)))
                                     os.remove(tempfile.gettempdir()+"/temporary.mp4") #So far we'll remove this temporary file
 
 
                                 if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO a modifier
                                     print("QUEUE CACHE : {}".format(QUEUE_CACHE))
-                                    os.remove(tempfile.gettempdir() + "/" + QUEUE_CACHE[0])
                                     to_delete,_ = QUEUE_CACHE[0]
+                                    os.remove(tempfile.gettempdir() + "/" + to_delete+".mp4")
                                     QUEUE_CACHE.pop(0)
                                     del ALL_TEMP_FILES[to_delete]
 
