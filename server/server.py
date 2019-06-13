@@ -339,6 +339,7 @@ class ClientThread(threading.Thread):
                                         ip_dest = [ipdest for (hash,ipdest) in CLIENTS_CACHE.items()
                                                    if hash == FILE_ID[each_coding[0]]][0]
                                 message_bdcast = "[FILES]${}->{}".format(ip_src, ip_dest)
+                                print(message_bdcast)
                                 broadcast_answer.sendto(bytes(message_bdcast, "utf-8"), ("<broadcast>", 40000))
                                 """
                                     [D2D_SENDER] : Initialize connection and will ask for the file
@@ -346,11 +347,11 @@ class ClientThread(threading.Thread):
                                                                     
                                 """
                                 message_dest = "[D2D_RECEIVER]${'port_dest:{}}".format(D2D_PORT_DEST)
+                                global  REQUEST_ORIGIN
                                 REQUEST_ORIGIN[ip_dest].send(bytes(message_dest, "utf-8"))
                                 message_src = "[D2D_SENDER]${'ip_dest':{},'port_dest':{},'port_src':{}" \
                                               "'pop':{}}".format(ip_dest, D2D_PORT_DEST, D2D_PORT_SRC, pop )
                                 REQUEST_ORIGIN[ip_src].send(bytes(message_src,"utf-8"))
-
                                 continue # Goes to the next iteration
 
                             print("All right ?")

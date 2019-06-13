@@ -79,4 +79,5 @@ class D2DTCPThreading(threading.Thread):
             d2d_tcp.close()
 
         else:
+            print("[ERROR]")
             sys.exit(0)
