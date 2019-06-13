@@ -6,8 +6,9 @@ import time
 import sys
 import shutil
 import copy
+import d2d
 
-HOST ="192.168.1.1" # Must be changed with the real server IP address
+HOST ="127.0.0.1" # Must be changed with the real server IP address
 PORT=25555
 BROADCAST_PORT = 40000
 DIR_TEMP_NAME = "PIRCaching"
@@ -182,10 +183,22 @@ try:
                         pass
 
                 if is_readable:
+                    ip = socket.gethostbyname(socket.gethostname())
+                    if ip in decode_data:
+                        D2Dthread = d2d.D2DTCPThreading(tcp_connection=client,
+                                                        hash_id= hashed_message,
+                                                        temp_dir= tempfile.gettempdir(),
+                                                        all_temp_files=ALL_TEMP_FILES,
+                                                        queue_file=QUEUE_CACHE
+                                                        )
+                        D2Dthread.start()
+                        if ip == decode_data.split("$")[1].split("->")[0]:
+                            D2Dthread.join()
+                            break
+
                     xor_files = decode_data.split("$")[1]
                     decodable = True
                     xor_files = eval(xor_files)
-                    print(type(xor_files))
                     for (file ,size, pop) in xor_files:
                         print("Hashed : {}".format(hashed_message))
                         print(file)

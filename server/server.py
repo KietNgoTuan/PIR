@@ -16,12 +16,17 @@ PORT = 25555
 BROADCAST_PORT = 44444
 COEFF_LAN = 1.05
 
+D2D_PORT_SRC = 45000
+D2D_PORT_DEST = 45454
+
 INDEX_VIDEOS = dict()
 INDEX_REQUEST = list()
 CLIENTS_CACHE = dict()
+REQUIRED_FILES = dict() # for each file (hash) knows who asked for it
 MATRIX_CODAGE=list()
 deltat = float()
 ONGOING_REQUESTS = set()
+REQUEST_ORIGIN = dict()
 
 PRIVATE_YOUTUBE_KEY = "AIzaSyDaKk0TDBSmnHSqmPXpmRCV2PApz8rJzqo"
 QUITTING = "7694f4a66316e53c8cdd9d9954bd611d"
@@ -34,7 +39,7 @@ YOUTUBE_DICT = {
     "NYAN" :  "uKm2KN5gBiY"
 }
 
-SYNCHRONE_REQUEST = 4
+SYNCHRONE_REQUEST = 1
 AMOUNT_CLIENT = int()
 
 # Initializing connection with mySQL
@@ -202,15 +207,20 @@ class ClientThread(threading.Thread):
 
         print("Connexion de %s %s" % (self.ip, self.port,))
         response = self.clientsocket.recv(4096)  # reçoit le message sur un buffer de 4096 bits
-        global SYNCHRONE_REQUEST
+        global SYNCHRONE_REQUEST, REQUIRED_FILES
 
         while response.decode("utf-8").split("+")[0] != QUITTING:
             print("Start while : {}".format(response.decode("utf-8")))
             hash = response.decode("utf-8").split("+")[0]
+
             print("Hash : {}".format(hash))
             index = FILE_ID.index(hash)  # Prendre l' indice du fichier demande
             vector_cache = [0 for _ in range(len(FILE_ID))]
             with mutex_ongoing_request:
+                try:
+                    REQUIRED_FILES[hash].append(self.ip)
+                except KeyError:
+                    REQUIRED_FILES[hash] = [self.ip]
                 ONGOING_REQUESTS.add((hash, os.stat(INDEX_VIDEOS[hash]).st_size))
                 get_popularity_request = "SELECT POPULARITY FROM pir.videos WHERE HASH_ID='{}';".format(hash)
                 cursor.execute(get_popularity_request)
@@ -300,7 +310,6 @@ class ClientThread(threading.Thread):
                         to_send.append((a,b,pop))
                     message += str(to_send)
                     tdebut = time.time()
-                    print("T debut in unique send : {}".format(tdebut))
                     broadcast_answer.sendto(bytes(message, "utf-8"), ("<broadcast>", 40000))
                     with open(path_to_send, 'rb') as file_in:
                         f = file_in.read(1024)
@@ -317,6 +326,34 @@ class ClientThread(threading.Thread):
                     for each_coding in res:
                         # List index : each_coding
                         if len(each_coding) == 1:
+                            print("Possible to D2D")
+                            if len(REQUIRED_FILES[FILE_ID[each_coding[0]]]) == 1:
+                                # Create D2D communication (possibly)
+                                ip_src = REQUIRED_FILES[FILE_ID[each_coding[0]]][0]
+                                ip_dest = str()
+                                cursor.execute("SELECT POPULARITY from pir.videos WHERE HASH_ID ='{}'"
+                                               .format(FILE_ID[each_coding[0]]))
+                                (pop,) = cursor.fetchall()
+                                for cached_file in CLIENTS_CACHE.values():
+                                    if FILE_ID[each_coding[0]] in cached_file:
+                                        ip_dest = [ipdest for (hash,ipdest) in CLIENTS_CACHE.items()
+                                                   if hash == FILE_ID[each_coding[0]]][0]
+                                message_bdcast = "[FILES]${}->{}".format(ip_src, ip_dest)
+                                broadcast_answer.sendto(bytes(message_bdcast, "utf-8"), ("<broadcast>", 40000))
+                                """
+                                    [D2D_SENDER] : Initialize connection and will ask for the file
+                                    [D2D_RECEIVER] : Receive the request and send through TCP to D2D_SENDER
+                                                                    
+                                """
+                                message_dest = "[D2D_RECEIVER]${'port_dest:{}}".format(D2D_PORT_DEST)
+                                REQUEST_ORIGIN[ip_dest].send(bytes(message_dest, "utf-8"))
+                                message_src = "[D2D_SENDER]${'ip_dest':{},'port_dest':{},'port_src':{}" \
+                                              "'pop':{}}".format(ip_dest, D2D_PORT_DEST, D2D_PORT_SRC, pop )
+                                REQUEST_ORIGIN[ip_src].send(bytes(message_src,"utf-8"))
+
+                                continue # Goes to the next iteration
+
+                            print("All right ?")
                             path_to_send = INDEX_VIDEOS[FILE_ID[each_coding[0]]]
 
                         else :
@@ -351,11 +388,16 @@ class ClientThread(threading.Thread):
                         deltat += inter_t
 
                     broadcast_answer.close()
-                    del INDEX_REQUEST[:]
-                    del MATRIX_CODAGE[:]
-                    del index_files[:]
-                    del index_rest[:]
-                    SYNCHRONE_REQUEST = 4
+                del INDEX_REQUEST[:]
+                del MATRIX_CODAGE[:]
+                del index_files[:]
+                del index_rest[:]
+                print(REQUIRED_FILES)
+                REQUIRED_FILES = dict()
+                REQUEST_ORIGIN = dict()
+                print("REUPDATE")
+                SYNCHRONE_REQUEST = 1
+                print(SYNCHRONE_REQUEST)
                 print("Temps pris en seconde pour répondre à tout le monde : {}".format(deltat))
             response = self.clientsocket.recv(4096)
 
@@ -365,9 +407,11 @@ while True:
     try:
         s.listen(NB_CLIENT)
         print("En écoute...")
-
         (clientsocket, (ip, port)) = s.accept()  # on repere une connexion
+        REQUEST_ORIGIN[ip]=clientsocket
+        print(REQUEST_ORIGIN)
         clientsocket.setblocking(True)
+
 
         tabClients[n] = clientsocket  # on rentre dans le dictionnaire des clients
 
