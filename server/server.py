@@ -27,11 +27,11 @@ PRIVATE_YOUTUBE_KEY = "AIzaSyDaKk0TDBSmnHSqmPXpmRCV2PApz8rJzqo"
 QUITTING = "7694f4a66316e53c8cdd9d9954bd611d"
 
 YOUTUBE_DICT = {
-    "BONGO" : "bHnuWN7z8gk",
+    "GRAVE" : "_yyjPxvNLGk",
     "ALLAN" : "_dK2tDK9grQ",
-    "TOUR" :  "VcyFfcJbyeM",
-    "KALI" :  "7ysFgElQtjI",
-    "NYAN" :  "uKm2KN5gBiY"
+    "YEUX" :  "FmUDe7P0fzg",
+    "ADIEU" :  "U4EICXeGtx0",
+    "CACHE" :  "hNK5izw6jUs"
 }
 
 SYNCHRONE_REQUEST = 4
@@ -251,7 +251,8 @@ class ClientThread(threading.Thread):
                 broadcast_answer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
                 broadcast_answer.bind(('', BROADCAST_PORT))
                 broadcast_answer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
+                global deltat
+                deltat = 0
                 print("Index Request : {}".format(INDEX_REQUEST))
                 INDEX_REQUEST.sort(key=lambda x: x[0])
                 index_files = list()
@@ -308,7 +309,6 @@ class ClientThread(threading.Thread):
                             broadcast_answer.sendto(f, ("<broadcast>", 40000))
                             f = file_in.read(1024)
                     inter_t = (time.time() - tdebut)
-                    global deltat
                     deltat += inter_t
                     file_in.close()
 
@@ -336,6 +336,7 @@ class ClientThread(threading.Thread):
                         print("Message regarding files : {}".format(message))
                         broadcast_answer.sendto(bytes(message, "utf-8"),  ("<broadcast>", 40000))
                         tdebut = time.time()
+                        print("Time debut XOR : {}".format(tdebut))
 
                         with open(path_to_send, 'rb') as file_in:
                             f = file_in.read(1024)
@@ -348,14 +349,15 @@ class ClientThread(threading.Thread):
                         except FileNotFoundError:
                             pass
                         inter_t = (time.time()-tdebut)
+                        print(inter_t)
                         deltat += inter_t
 
                     broadcast_answer.close()
-                    del INDEX_REQUEST[:]
-                    del MATRIX_CODAGE[:]
-                    del index_files[:]
-                    del index_rest[:]
-                    SYNCHRONE_REQUEST = 4
+                del INDEX_REQUEST[:]
+                del MATRIX_CODAGE[:]
+                del index_files[:]
+                del index_rest[:]
+                SYNCHRONE_REQUEST = 4
                 print("Temps pris en seconde pour répondre à tout le monde : {}".format(deltat))
             response = self.clientsocket.recv(4096)
 
@@ -381,8 +383,5 @@ while True:
         for i in range(n):
             tabClients[i].close()
         sys.exit(0)
-
-
-
 
 

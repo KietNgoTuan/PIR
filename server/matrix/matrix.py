@@ -25,10 +25,14 @@ def RequestIsRelatif(file):
 
 # Trouver l'origine du fichier choisi
 def SearchOrigin(tab, c):
+    list=tab
+    print("Tab : {}".format(tab))
+    print(" C : {}".format(c))
     for i in range(len(tab)):
         for j in range(len(tab[i])):
+            print(tab[i])
             if tab[i][1] == c:
-                return tab[i]
+                return list[i]
 
 
 # Verifier si un element dans le liste
@@ -56,8 +60,12 @@ def TraitementXOR(file):
             for i in check:
                 for val in file[i]:
                     if val in check:
-                        c = resultat.index(SearchOrigin(temp, i))
-                        resultat[c].append(val)
+                        t=list()
+                        print(resultat)
+                        #c = resultat.index(SearchOrigin(temp, i))
+                        if SearchOrigin(temp, i).append(val)!=None:
+                         t=SearchOrigin(temp,i)
+                         resultat.append(t.append(val))
                     else:
                         check.append(val)
                         temp.append([i, val])
