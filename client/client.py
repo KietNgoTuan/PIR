@@ -76,12 +76,14 @@ class D2DTCPThreading(threading.Thread):
                     break
                 except socket.error:
                     print("Error trying again to initialize connection")
+                    time.sleep(1)
                     if amount_of_try == 0:
                         print("Can no longer succed")
                         sys.exit(0)
                     amount_of_try -= 1
 
             message = "[FILE_REQUEST]${}".format(self.hash_id)
+            print(message)
             d2d_tcp.send(bytes(message, "utf-8"))
 
             with open(tempfile.gettempdir() + "/" + self.hash_id + ".mp4", "wb") as mp4file:
@@ -103,13 +105,11 @@ class D2DTCPThreading(threading.Thread):
 
         elif "[D2D_RECEIVER]" in data_utf8:
             payload = eval(data_utf8.split("$")[1])
-            print("Receive a connection")
             # use of payload["port_dest"]
             d2d_tcp_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            d2d_tcp_connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             d2d_tcp_connection.bind(('', payload["port_dest"]))
             d2d_tcp_connection.listen(1)
-
+            print("Hell no !")
             d2d_tcp, _ = d2d_tcp_connection.accept()
             data = d2d_tcp.recv(4096)
             print(data)
