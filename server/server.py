@@ -39,7 +39,7 @@ YOUTUBE_DICT = {
     "NYAN" :  "uKm2KN5gBiY"
 }
 
-SYNCHRONE_REQUEST = 1
+SYNCHRONE_REQUEST = 2
 AMOUNT_CLIENT = int()
 
 # Initializing connection with mySQL
@@ -331,6 +331,7 @@ class ClientThread(threading.Thread):
                                 # Create D2D communication (possibly)
                                 ip_src = REQUIRED_FILES[FILE_ID[each_coding[0]]][0]
                                 ip_dest = str()
+                                print("IP SRO : {}, IP DEST : {}".format(ip_src,ip_dest))
                                 cursor.execute("SELECT POPULARITY from pir.videos WHERE HASH_ID ='{}'"
                                                .format(FILE_ID[each_coding[0]]))
                                 (pop,) = cursor.fetchall()
@@ -338,6 +339,7 @@ class ClientThread(threading.Thread):
                                     if FILE_ID[each_coding[0]] in cached_file:
                                         ip_dest = [ipdest for (hash,ipdest) in CLIENTS_CACHE.items()
                                                    if hash == FILE_ID[each_coding[0]]][0]
+                                        print("After IP DEST : {}".format(ip_dest))
                                 message_bdcast = "[FILES]${}->{}".format(ip_src, ip_dest)
                                 broadcast_answer.sendto(bytes(message_bdcast, "utf-8"), ("<broadcast>", 40000))
                                 """
@@ -396,7 +398,7 @@ class ClientThread(threading.Thread):
                 REQUIRED_FILES = dict()
                 REQUEST_ORIGIN = dict()
                 print("REUPDATE")
-                SYNCHRONE_REQUEST = 1
+                SYNCHRONE_REQUEST = 2
                 print(SYNCHRONE_REQUEST)
                 print("Temps pris en seconde pour répondre à tout le monde : {}".format(deltat))
             response = self.clientsocket.recv(4096)

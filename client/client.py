@@ -55,7 +55,7 @@ receive_broadcast.bind(('', BROADCAST_PORT))
 
 class D2DTCPThreading(threading.Thread):
 
-    def __init__(self, tcp_connection, hash_id, temp_dir):
+    def __init__(self, tcp_connection, hash_id):
         threading.Thread.__init__(self)
         self.tcp_connection = tcp_connection
         self.hash_id = hash_id
@@ -261,12 +261,15 @@ try:
                     ip = socket.gethostbyname(socket.gethostname())
                     if ip in decode_data:
                         D2Dthread = D2DTCPThreading(tcp_connection=client,
-                                                        hash_id= hashed_message,
-                                                        )
+                                                        hash_id= hashed_message)
                         D2Dthread.start()
+                        print("SENDER : {}".format(decode_data.split("$")[1].split("->")[0]))
                         if ip == decode_data.split("$")[1].split("->")[0]:
                             D2Dthread.join()
                             break
+                        else:
+                            data = receive_broadcast.recv(1024)
+                            decode_data = data.decode("utf-8")
 
                     xor_files = decode_data.split("$")[1]
                     decodable = True
