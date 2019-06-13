@@ -103,12 +103,16 @@ class D2DTCPThreading(threading.Thread):
 
         elif "[D2D_RECEIVER]" in data_utf8:
             payload = eval(data_utf8.split("$")[1])
+            print("Receive a connection")
             # use of payload["port_dest"]
-            d2d_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            d2d_tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            d2d_tcp.bind(('', payload["port_dest"]))
+            d2d_tcp_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            d2d_tcp_connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            d2d_tcp_connection.bind(('', payload["port_dest"]))
+            d2d_tcp_connection.listen(1)
 
-            data = d2d_tcp.recv(1024)
+            d2d_tcp, _ = d2d_tcp_connection.accept()
+            data = d2d_tcp.recv(4096)
+            print(data)
             if "[FILE_REQUEST]" in data.decode("utf-8"):
                 hash = data.decode("utf-8").split("$")[1]
                 with open(tempfile.gettempdir() + "/" + hash + ".mp4", 'rb') as file_in:
