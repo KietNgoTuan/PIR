@@ -6,7 +6,7 @@ import time
 import sys
 import shutil
 import copy
-import d2d
+import threading
 
 HOST ="127.0.0.1" # Must be changed with the real server IP address
 PORT=25555
@@ -47,6 +47,81 @@ print(QUEUE_CACHE)
 receive_broadcast = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
 receive_broadcast.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 receive_broadcast.bind(('', BROADCAST_PORT))
+
+"""
+    Utilisation du module D2D
+"""
+
+
+class D2DTCPThreading(threading.Thread):
+
+    def __init__(self, tcp_connection, hash_id, temp_dir):
+        threading.Thread.__init__(self)
+        self.tcp_connection = tcp_connection
+        self.hash_id = hash_id
+
+    def run(self):
+        data, _ = self.tcp_connection.listen(4096)
+        data_utf8 = data.decode("utf-8")
+        if "[D2D_SENDER]" in data_utf8:
+            amount_of_try = 5
+            payload = eval(data_utf8.split("$")[1])[0]
+            d2d_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            d2d_tcp.bind(('', payload["ip_src"]))
+
+            while (amount_of_try >= 0):
+                try:
+                    d2d_tcp.connect((payload["ip_dest"], payload["port_dest"]))
+                    break
+                except socket.error:
+                    print("Error trying again to initialize connection")
+                    if amount_of_try == 0:
+                        print("Can no longer succed")
+                        sys.exit(0)
+            message = "[FILE_REQUEST]${}".format(self.hash_id)
+            d2d_tcp.send(bytes(message, "utf-8"))
+
+            with open(tempfile.gettempdir() + "/" + self.hash_id + ".mp4", "wb") as mp4file:
+                while (True):
+                    data, _ = d2d_tcp.recv(1024)
+                    mp4file.write(data)
+                    if len(data) != 1024:
+                        break
+                mp4file.close()
+            d2d_tcp.close()
+
+            if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO a modifier
+                to_delete, _ = QUEUE_CACHE[0]
+                os.remove(tempfile.gettempdir() + "/" + to_delete + ".mp4")
+                QUEUE_CACHE.pop(0)
+                del ALL_TEMP_FILES[to_delete]
+
+            insert((self.hash_id, payload["pop"]))
+
+        elif "[D2D_RECEIVER]" in data_utf8:
+            payload = eval(data_utf8.split("$")[1])[0]
+            # use of payload["port_dest"]
+            d2d_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            d2d_tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            d2d_tcp.bind(('', payload["port_dest"]))
+
+            data = d2d_tcp.recv(1024)
+            if "[FILE_REQUEST]" in data.decode("utf-8"):
+                hash = data.decode("utf-8").split("$")[1]
+                with open(tempfile.gettempdir() + "/" + hash + ".mp4", 'rb') as file_in:
+                    f = file_in.read(1024)
+                    while (f):
+                        d2d_tcp.send(f)
+                        f = file_in.read(1024)
+                file_in.close()
+
+            d2d_tcp.close()
+
+        else:
+            print("[ERROR]c")
+            sys.exit(0)
+
+
 
 def padding(f1,f2):
     dif = os.stat(f2).st_size-os.stat(f1).st_size
@@ -185,11 +260,8 @@ try:
                 if is_readable:
                     ip = socket.gethostbyname(socket.gethostname())
                     if ip in decode_data:
-                        D2Dthread = d2d.D2DTCPThreading(tcp_connection=client,
+                        D2Dthread = D2DTCPThreading(tcp_connection=client,
                                                         hash_id= hashed_message,
-                                                        temp_dir= tempfile.gettempdir(),
-                                                        all_temp_files=ALL_TEMP_FILES,
-                                                        queue_file=QUEUE_CACHE
                                                         )
                         D2Dthread.start()
                         if ip == decode_data.split("$")[1].split("->")[0]:
