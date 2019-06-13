@@ -79,6 +79,8 @@ class D2DTCPThreading(threading.Thread):
                     if amount_of_try == 0:
                         print("Can no longer succed")
                         sys.exit(0)
+                    amount_of_try -= 1
+
             message = "[FILE_REQUEST]${}".format(self.hash_id)
             d2d_tcp.send(bytes(message, "utf-8"))
 
@@ -100,7 +102,7 @@ class D2DTCPThreading(threading.Thread):
             insert((self.hash_id, payload["pop"]))
 
         elif "[D2D_RECEIVER]" in data_utf8:
-            payload = eval(data_utf8.split("$")[1])[0]
+            payload = eval(data_utf8.split("$")[1])
             # use of payload["port_dest"]
             d2d_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             d2d_tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
