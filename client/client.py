@@ -61,13 +61,14 @@ class D2DTCPThreading(threading.Thread):
         self.hash_id = hash_id
 
     def run(self):
-        data, _ = self.tcp_connection.listen(4096)
+        data = self.tcp_connection.recv(4096)
         data_utf8 = data.decode("utf-8")
+        print(data_utf8)
         if "[D2D_SENDER]" in data_utf8:
             amount_of_try = 5
-            payload = eval(data_utf8.split("$")[1])[0]
+            payload = eval(data_utf8.split("$")[1])
             d2d_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            d2d_tcp.bind(('', payload["ip_src"]))
+            d2d_tcp.bind(('', payload["port_src"]))
 
             while (amount_of_try >= 0):
                 try:
@@ -259,11 +260,11 @@ try:
 
                 if is_readable:
                     ip = socket.gethostbyname(socket.gethostname())
+                    print("Decode data : {}".format(decode_data))
                     if ip in decode_data:
                         D2Dthread = D2DTCPThreading(tcp_connection=client,
                                                         hash_id= hashed_message)
                         D2Dthread.start()
-                        print("SENDER : {}".format(decode_data.split("$")[1].split("->")[0]))
                         if ip == decode_data.split("$")[1].split("->")[0]:
                             D2Dthread.join()
                             break

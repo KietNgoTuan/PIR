@@ -27,6 +27,7 @@ MATRIX_CODAGE=list()
 deltat = float()
 ONGOING_REQUESTS = set()
 REQUEST_ORIGIN = dict()
+path_to_send = str()
 
 PRIVATE_YOUTUBE_KEY = "AIzaSyDaKk0TDBSmnHSqmPXpmRCV2PApz8rJzqo"
 QUITTING = "7694f4a66316e53c8cdd9d9954bd611d"
@@ -233,13 +234,15 @@ class ClientThread(threading.Thread):
 
             print("Cache information : {}".format(cache_information))
             mutex_clients_cache.acquire()
-            if ip not in CLIENTS_CACHE.keys():
-                CLIENTS_CACHE[ip] = cache_information
-            elif CLIENTS_CACHE[ip] != cache_information:
-                CLIENTS_CACHE[ip] = cache_information
+            print("KEYS : {}".format(CLIENTS_CACHE.keys()))
+            print("Client IP : {}".format(self.ip))
+            if self.ip not in CLIENTS_CACHE.keys():
+                CLIENTS_CACHE[self.ip] = cache_information
+            elif CLIENTS_CACHE[self.ip] != cache_information:
+                CLIENTS_CACHE[self.ip] = cache_information
+            print(CLIENTS_CACHE)
             mutex_clients_cache.release()
             for cache in cache_information:
-                print(cache)
                 vector_cache[FILE_ID.index(cache)]=1
             if INDEX_REQUEST == []:
                 INDEX_REQUEST.append([index, 0, vector_cache])
@@ -322,7 +325,6 @@ class ClientThread(threading.Thread):
                     file_in.close()
 
                 else:
-                    print("Res : {}".format(res))
                     for each_coding in res:
                         # List index : each_coding
                         if len(each_coding) == 1:
@@ -330,32 +332,49 @@ class ClientThread(threading.Thread):
                             if len(REQUIRED_FILES[FILE_ID[each_coding[0]]]) == 1:
                                 # Create D2D communication (possibly)
                                 ip_src = REQUIRED_FILES[FILE_ID[each_coding[0]]][0]
-                                ip_dest = str()
-                                print("IP SRO : {}, IP DEST : {}".format(ip_src,ip_dest))
-                                cursor.execute("SELECT POPULARITY from pir.videos WHERE HASH_ID ='{}'"
-                                               .format(FILE_ID[each_coding[0]]))
-                                (pop,) = cursor.fetchall()
+                                ip_dest = list()
+                                print(CLIENTS_CACHE)
+                                print(CLIENTS_CACHE.items())
                                 for cached_file in CLIENTS_CACHE.values():
+                                    print(cached_file)
+                                    print(FILE_ID[each_coding[0]])
                                     if FILE_ID[each_coding[0]] in cached_file:
-                                        ip_dest = [ipdest for (hash,ipdest) in CLIENTS_CACHE.items()
-                                                   if hash == FILE_ID[each_coding[0]]][0]
-                                        print("After IP DEST : {}".format(ip_dest))
-                                message_bdcast = "[FILES]${}->{}".format(ip_src, ip_dest)
-                                broadcast_answer.sendto(bytes(message_bdcast, "utf-8"), ("<broadcast>", 40000))
+                                        print(FILE_ID[each_coding[0]])
+                                        ip_dest = [ipdest for (ipdest,hash) in CLIENTS_CACHE.items()
+                                                   if FILE_ID[each_coding[0]] in hash ]
+
+                                        print("Voici ip_dest : {}".format(ip_dest))
+                                        if len(ip_dest) != 0:
+                                            ip_dest = ip_dest[0]
+                                if ip_dest != list():
+                                    cursor.execute("SELECT POPULARITY from pir.videos WHERE HASH_ID ='{}'"
+                                                   .format(FILE_ID[each_coding[0]]))
+                                    (pop,) = cursor.fetchall()
+                                    message_bdcast = "[FILES]${}->{}".format(ip_src, ip_dest)
+                                    print(message_bdcast)
+                                    global REQUEST_ORIGIN
+                                    print("origin : {}".format(REQUEST_ORIGIN))
+                                    broadcast_answer.sendto(bytes(message_bdcast, "utf-8"), ("<broadcast>", 40000))
+                                    dest_data = {'port_dest':D2D_PORT_DEST }
+                                    message_dest = "[D2D_RECEIVER]$"+str(dest_data)
+                                    print(message_dest)
+
+                                    REQUEST_ORIGIN[ip_dest].send(bytes(message_dest, "utf-8"))
+                                    dest_data = {'ip_dest': ip_dest,
+                                                    'port_dest':D2D_PORT_DEST,
+                                                    'port_src':D2D_PORT_SRC,
+                                                    'pop':pop}
+
+                                    message_src = "[D2D_SENDER]$"+str(dest_data)
+                                    print(message_src)
+                                    REQUEST_ORIGIN[ip_src].send(bytes(message_src, "utf-8"))
+                                    continue  # Goes to the next iteration
                                 """
                                     [D2D_SENDER] : Initialize connection and will ask for the file
                                     [D2D_RECEIVER] : Receive the request and send through TCP to D2D_SENDER
                                                                     
                                 """
-                                message_dest = "[D2D_RECEIVER]${'port_dest:{}}".format(D2D_PORT_DEST)
-                                global  REQUEST_ORIGIN
-                                REQUEST_ORIGIN[ip_dest].send(bytes(message_dest, "utf-8"))
-                                message_src = "[D2D_SENDER]${'ip_dest':{},'port_dest':{},'port_src':{}" \
-                                              "'pop':{}}".format(ip_dest, D2D_PORT_DEST, D2D_PORT_SRC, pop )
-                                REQUEST_ORIGIN[ip_src].send(bytes(message_src,"utf-8"))
-                                continue # Goes to the next iteration
 
-                            print("All right ?")
                             path_to_send = INDEX_VIDEOS[FILE_ID[each_coding[0]]]
 
                         else :
@@ -396,7 +415,6 @@ class ClientThread(threading.Thread):
                 del index_rest[:]
                 print(REQUIRED_FILES)
                 REQUIRED_FILES = dict()
-                REQUEST_ORIGIN = dict()
                 print("REUPDATE")
                 SYNCHRONE_REQUEST = 2
                 print(SYNCHRONE_REQUEST)
@@ -411,7 +429,6 @@ while True:
         print("En écoute...")
         (clientsocket, (ip, port)) = s.accept()  # on repere une connexion
         REQUEST_ORIGIN[ip]=clientsocket
-        print(REQUEST_ORIGIN)
         clientsocket.setblocking(True)
 
 
