@@ -376,6 +376,7 @@ class ClientThread(threading.Thread):
                                     REQUEST_ORIGIN[ip_dest].settimeout(3)
                                     try:
                                         data = REQUEST_ORIGIN[ip_dest].recv(4096)
+                                        print("DATA from dest : {}".format(data))
                                         if "[READY_D2D]" not in data.decode("utf-8"):
                                             raise socket.timeout
                                         else:

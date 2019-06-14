@@ -8,7 +8,7 @@ import shutil
 import copy
 import threading
 
-HOST ="192.168.1.42" # Must be changed with the real server IP address
+HOST ="192.168.1.1" # Must be changed with the real server IP address
 PORT=25555
 BROADCAST_PORT = 40000
 DIR_TEMP_NAME = "PIRCaching"
