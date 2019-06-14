@@ -329,7 +329,6 @@ class ClientThread(threading.Thread):
                     for each_coding in res:
                         # List index : each_coding
                         if len(each_coding) == 1:
-                            leave = False
                             print("Possible to D2D")
                             if len(REQUIRED_FILES[FILE_ID[each_coding[0]]]) == 1:
                                 # Create D2D communication (possibly)
@@ -373,18 +372,19 @@ class ClientThread(threading.Thread):
                                                     'pop':pop}
 
                                     message_src = "[D2D_SENDER]$"+str(dest_data)
-                                    REQUEST_ORIGIN[ip_dest].settimeout(3)
+                                    REQUEST_ORIGIN[ip_dest].settimeout(10)
                                     try:
+
                                         data = REQUEST_ORIGIN[ip_dest].recv(4096)
                                         print("DATA from dest : {}".format(data))
                                         if "[READY_D2D]" not in data.decode("utf-8"):
                                             raise socket.timeout
                                         else:
+                                            REQUEST_ORIGIN[ip_src].send(bytes(message_src, "utf-8"))
                                             continue
                                     except socket.timeout:
-                                        leave = True
-                                    if not leave:
-                                        REQUEST_ORIGIN[ip_src].send(bytes(message_src, "utf-8"))
+                                        print("Not sending data to sender")
+                                        pass
                                       # Goes to the next iteration
                                 """
                                     [D2D_SENDER] : Initialize connection and will ask for the file
@@ -425,7 +425,7 @@ class ClientThread(threading.Thread):
                         inter_t = (time.time()-tdebut)
                         deltat += inter_t
 
-                    broadcast_answer.close()
+                broadcast_answer.close()
                 del INDEX_REQUEST[:]
                 del MATRIX_CODAGE[:]
                 del index_files[:]

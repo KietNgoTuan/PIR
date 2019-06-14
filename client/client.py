@@ -15,6 +15,7 @@ DIR_TEMP_NAME = "PIRCaching"
 ALL_TEMP_FILES = dict()
 QUEUE_CACHE = list() # LIST which represents the cache from the less popular to the most one (tuple)
 SIZE_FILE = int()
+D2D_THREAD_LIST = list()
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((HOST,PORT))
@@ -89,10 +90,13 @@ class D2DTCPThreading(threading.Thread):
 
             with open(tempfile.gettempdir() + "/" + self.hash_id + ".mp4", "wb") as mp4file:
                 while (True):
-                    data, _ = d2d_tcp.recv(1024)
+                    data = d2d_tcp.recv(1024)
                     mp4file.write(data)
-                    if len(data) != 1024:
-                        break
+                    try:
+                        if "[END]" in  data.decode("utf-8") or data.decode("utf-8") == str():
+                            break
+                    except UnicodeDecodeError:
+                        pass
                 mp4file.close()
             d2d_tcp.close()
 
@@ -110,7 +114,7 @@ class D2DTCPThreading(threading.Thread):
             d2d_tcp_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             d2d_tcp_connection.bind(('', payload["port_dest"]))
             d2d_tcp_connection.listen(1)
-            self.tcp_connection.write(b"[READY_D2D]")
+            self.tcp_connection.send(b"[READY_D2D]")
             d2d_tcp, _ = d2d_tcp_connection.accept()
             data = d2d_tcp.recv(4096)
             print(data)
@@ -121,6 +125,7 @@ class D2DTCPThreading(threading.Thread):
                     while (f):
                         d2d_tcp.send(f)
                         f = file_in.read(1024)
+                    d2d_tcp.send(b"[END]")
                 file_in.close()
 
             d2d_tcp.close()
@@ -270,6 +275,7 @@ try:
                         if ip in decode_data:
                             D2Dthread = D2DTCPThreading(tcp_connection=client,
                                                             hash_id= hashed_message)
+                            D2D_THREAD_LIST.append(D2Dthread)
                             D2Dthread.start()
                             if ip == decode_data.split("$")[1].split("->")[0]:
                                 D2Dthread.join()
@@ -335,6 +341,10 @@ try:
                                 insert((hashed_message,pop))
                                 ALL_TEMP_FILES[hashed_message] = tempfile.gettempdir()+"/"+hashed_message+".mp4"
                 i += 1
+            for D2D_THREAD in D2D_THREAD_LIST:
+                if D2D_THREAD.is_alive():
+                    print("Still one working thread")
+                    D2D_THREAD.join()
             plain_message = input("Fichier à télecharger : ")
 
 except KeyboardInterrupt:
