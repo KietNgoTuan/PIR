@@ -274,9 +274,8 @@ try:
                             if ip == decode_data.split("$")[1].split("->")[0]:
                                 D2Dthread.join()
                                 break
-                            else:
-                                data = receive_broadcast.recv(1024)
-                                decode_data = data.decode("utf-8")
+                            i += 1
+                            continue
                         else:
                             i += 1
                             continue
