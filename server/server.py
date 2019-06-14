@@ -28,6 +28,7 @@ deltat = float()
 ONGOING_REQUESTS = set()
 REQUEST_ORIGIN = dict()
 path_to_send = str()
+D2D_HOST = list()
 
 PRIVATE_YOUTUBE_KEY = "AIzaSyDaKk0TDBSmnHSqmPXpmRCV2PApz8rJzqo"
 QUITTING = "7694f4a66316e53c8cdd9d9954bd611d"
@@ -345,12 +346,16 @@ class ClientThread(threading.Thread):
 
                                         print("Voici ip_dest : {}".format(ip_dest))
                                         if len(ip_dest) != 0:
-                                            ip_dest = ip_dest[0]
+                                            for i in ip_dest:
+                                                if i not in D2D_HOST:
+                                                    ip_dest = i
+                                                    D2D_HOST.append(ip_dest)
+                                                    break
                                 if ip_dest != list():
                                     cursor.execute("SELECT POPULARITY from pir.videos WHERE HASH_ID ='{}'"
                                                    .format(FILE_ID[each_coding[0]]))
                                     (pop,) = cursor.fetchall()
-                                    message_bdcast = "[FILES]${}->{}".format(ip_src, ip_dest)
+                                    message_bdcast = "[FILES_D2D]${}->{}".format(ip_src, ip_dest)
                                     print(message_bdcast)
                                     global REQUEST_ORIGIN
                                     print("origin : {}".format(REQUEST_ORIGIN))
@@ -413,6 +418,7 @@ class ClientThread(threading.Thread):
                 del MATRIX_CODAGE[:]
                 del index_files[:]
                 del index_rest[:]
+                del D2D_HOST[:] # Theorical
                 print(REQUIRED_FILES)
                 REQUIRED_FILES = dict()
                 print("REUPDATE")

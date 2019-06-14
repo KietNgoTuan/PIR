@@ -8,7 +8,7 @@ import shutil
 import copy
 import threading
 
-HOST ="192.168.1.1" # Must be changed with the real server IP address
+HOST ="192.168.1.42" # Must be changed with the real server IP address
 PORT=25555
 BROADCAST_PORT = 40000
 DIR_TEMP_NAME = "PIRCaching"
@@ -106,11 +106,13 @@ class D2DTCPThreading(threading.Thread):
         elif "[D2D_RECEIVER]" in data_utf8:
             payload = eval(data_utf8.split("$")[1])
             # use of payload["port_dest"]
+            print("Receiving a request")
             d2d_tcp_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             d2d_tcp_connection.bind(('', payload["port_dest"]))
             d2d_tcp_connection.listen(1)
             print("Hell no !")
             d2d_tcp, _ = d2d_tcp_connection.accept()
+            print(d2d_tcp)
             data = d2d_tcp.recv(4096)
             print(data)
             if "[FILE_REQUEST]" in data.decode("utf-8"):
@@ -125,7 +127,7 @@ class D2DTCPThreading(threading.Thread):
             d2d_tcp.close()
 
         else:
-            print("[ERROR]c")
+            print("[ERROR]")
             sys.exit(0)
 
 
@@ -257,7 +259,7 @@ try:
                     try:
                         data, _ = receive_broadcast.recvfrom(1024)
                         decode_data = data.decode("utf-8")
-                        if "[FILES]" in decode_data:
+                        if "FILES" in decode_data:
                             print("Received files")
                             is_readable = True
 
@@ -265,19 +267,24 @@ try:
                         pass
 
                 if is_readable:
-                    ip = socket.gethostbyname(socket.gethostname())
-                    print("Decode data : {}".format(decode_data))
-                    if ip in decode_data:
-                        D2Dthread = D2DTCPThreading(tcp_connection=client,
-                                                        hash_id= hashed_message)
-                        D2Dthread.start()
-                        if ip == decode_data.split("$")[1].split("->")[0]:
-                            D2Dthread.join()
-                            break
+                    if "[FILES_D2D]" in decode_data:
+                        ip = socket.gethostbyname(socket.gethostname())
+                        print("Decode data : {}".format(decode_data))
+                        if ip in decode_data:
+                            D2Dthread = D2DTCPThreading(tcp_connection=client,
+                                                            hash_id= hashed_message)
+                            D2Dthread.start()
+                            if ip == decode_data.split("$")[1].split("->")[0]:
+                                D2Dthread.join()
+                                break
+                            else:
+                                data = receive_broadcast.recv(1024)
+                                decode_data = data.decode("utf-8")
                         else:
                             data = receive_broadcast.recv(1024)
                             decode_data = data.decode("utf-8")
 
+                    print(decode_data)
                     xor_files = decode_data.split("$")[1]
                     decodable = True
                     xor_files = eval(xor_files)
@@ -311,7 +318,6 @@ try:
 
                                     mp4file.close()
 
-                                found = True
                                 if len(xor_files) == 1:
                                     os.rename(tempfile.gettempdir() + "/temporary.mp4",
                                               tempfile.gettempdir() + "/" + hashed_message + ".mp4")
