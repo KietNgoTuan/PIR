@@ -1,6 +1,5 @@
-filexor=dict()
 def MatrixDifRequeste(matrix, fileid):
-    tab = list()
+    filexor = dict()
     for i in range(len(matrix)):
         filexor[fileid[i]] = list()
         for j in range(len(matrix[0])):
@@ -25,14 +24,9 @@ def RequestIsRelatif(file):
 
 # Trouver l'origine du fichier choisi
 def SearchOrigin(tab, c):
-    list=tab
-    print("Tab : {}".format(tab))
-    print(" C : {}".format(c))
-    for i in range(len(tab)):
-        for j in range(len(tab[i])):
-            print(tab[i])
-            if tab[i][1] == c:
-                return list[i]
+    for i in tab:
+        if c in i:
+            return i
 
 
 # Verifier si un element dans le liste
@@ -43,34 +37,38 @@ def SearchElement(tab, c):
 
 
 # Traitement une liste de tous les xor de 2 fichiers, pour trouver des XOR de plusieurs fichiers
+def AjoutElement(tab, c):
+    temp = [x for x in tab]
+    temp.append(c)
+    return temp
+
+
 def TraitementXOR(file):
     keys = list(file.keys())
     temp = list()
-    resultat = list()
     check = list()
-    c = 0
-
     for j in keys:
         if j not in check:
             del check[:]
             for value in file[j]:
                 check.append(value)
                 temp.append([j, value])
-                resultat.append([j, value])
+
             for i in check:
                 for val in file[i]:
+                    resultat = list()
                     if val in check:
-                        t=list()
-                        print(resultat)
-                        #c = resultat.index(SearchOrigin(temp, i))
-                        if SearchOrigin(temp, i).append(val)!=None:
-                         t=SearchOrigin(temp,i)
-                         resultat.append(t.append(val))
+                        for k in temp:
+                            if val in k:
+                                resultat.append(AjoutElement(k, i))
+
                     else:
                         check.append(val)
                         temp.append([i, val])
-                        resultat.append([i, val])
-    return resultat
+                    for x in resultat:
+                        temp.append(x)
+
+    return temp
 
 
 # Sort une liste desc

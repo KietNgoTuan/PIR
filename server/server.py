@@ -31,10 +31,15 @@ YOUTUBE_DICT = {
     "ALLAN" : "_dK2tDK9grQ",
     "YEUX" :  "FmUDe7P0fzg",
     "ADIEU" :  "U4EICXeGtx0",
-    "CACHE" :  "hNK5izw6jUs"
+    "CACHE" :  "hNK5izw6jUs",
+    "VERRA" : "YltjliK0ZeA",
+    "SICKO" : "6ONRf7h3Mdk",
+    "PSYCHO" : "au2n7VVGv_c",
+    "BETTER" : "UYwF-jdcVjY",
+    "TOUR" : "WrsFXgQk5UI"
 }
 
-SYNCHRONE_REQUEST = 4
+SYNCHRONE_REQUEST = 6
 AMOUNT_CLIENT = int()
 
 # Initializing connection with mySQL
@@ -357,7 +362,7 @@ class ClientThread(threading.Thread):
                 del MATRIX_CODAGE[:]
                 del index_files[:]
                 del index_rest[:]
-                SYNCHRONE_REQUEST = 4
+                SYNCHRONE_REQUEST = 6
                 print("Temps pris en seconde pour répondre à tout le monde : {}".format(deltat))
             response = self.clientsocket.recv(4096)
 
