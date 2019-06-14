@@ -329,6 +329,7 @@ class ClientThread(threading.Thread):
                     for each_coding in res:
                         # List index : each_coding
                         if len(each_coding) == 1:
+                            leave = False
                             print("Possible to D2D")
                             if len(REQUIRED_FILES[FILE_ID[each_coding[0]]]) == 1:
                                 # Create D2D communication (possibly)
@@ -354,11 +355,12 @@ class ClientThread(threading.Thread):
                                 if ip_dest != list():
                                     cursor.execute("SELECT POPULARITY from pir.videos WHERE HASH_ID ='{}'"
                                                    .format(FILE_ID[each_coding[0]]))
-                                    (pop,) = cursor.fetchall()
+                                    pop, = cursor.fetchall()
+                                    pop, = pop
+                                    print(pop)
                                     message_bdcast = "[FILES_D2D]${}->{}".format(ip_src, ip_dest)
                                     print(message_bdcast)
                                     global REQUEST_ORIGIN
-                                    print("origin : {}".format(REQUEST_ORIGIN))
                                     broadcast_answer.sendto(bytes(message_bdcast, "utf-8"), ("<broadcast>", 40000))
                                     dest_data = {'port_dest':D2D_PORT_DEST }
                                     message_dest = "[D2D_RECEIVER]$"+str(dest_data)
@@ -371,9 +373,18 @@ class ClientThread(threading.Thread):
                                                     'pop':pop}
 
                                     message_src = "[D2D_SENDER]$"+str(dest_data)
-                                    print(message_src)
-                                    REQUEST_ORIGIN[ip_src].send(bytes(message_src, "utf-8"))
-                                    continue  # Goes to the next iteration
+                                    REQUEST_ORIGIN[ip_dest].settimeout(3)
+                                    try:
+                                        data = REQUEST_ORIGIN[ip_dest].recv(4096)
+                                        if "[READY_D2D]" not in data.decode("utf-8"):
+                                            raise socket.timeout
+                                        else:
+                                            continue
+                                    except socket.timeout:
+                                        leave = True
+                                    if not leave:
+                                        REQUEST_ORIGIN[ip_src].send(bytes(message_src, "utf-8"))
+                                      # Goes to the next iteration
                                 """
                                     [D2D_SENDER] : Initialize connection and will ask for the file
                                     [D2D_RECEIVER] : Receive the request and send through TCP to D2D_SENDER

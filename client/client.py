@@ -19,6 +19,7 @@ SIZE_FILE = int()
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((HOST,PORT))
 client.settimeout(1)
+ip = client.getsockname()[0]
 
 if DIR_TEMP_NAME not in os.listdir(tempfile.gettempdir()):
     os.mkdir(tempfile.gettempdir()+'/'+DIR_TEMP_NAME)
@@ -106,13 +107,11 @@ class D2DTCPThreading(threading.Thread):
         elif "[D2D_RECEIVER]" in data_utf8:
             payload = eval(data_utf8.split("$")[1])
             # use of payload["port_dest"]
-            print("Receiving a request")
             d2d_tcp_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             d2d_tcp_connection.bind(('', payload["port_dest"]))
             d2d_tcp_connection.listen(1)
-            print("Hell no !")
+            self.tcp_connection.write(b"[READY_D2D]")
             d2d_tcp, _ = d2d_tcp_connection.accept()
-            print(d2d_tcp)
             data = d2d_tcp.recv(4096)
             print(data)
             if "[FILE_REQUEST]" in data.decode("utf-8"):
@@ -268,8 +267,6 @@ try:
 
                 if is_readable:
                     if "[FILES_D2D]" in decode_data:
-                        ip = socket.gethostbyname(socket.gethostname())
-                        print("Decode data : {}".format(decode_data))
                         if ip in decode_data:
                             D2Dthread = D2DTCPThreading(tcp_connection=client,
                                                             hash_id= hashed_message)
@@ -281,8 +278,9 @@ try:
                                 data = receive_broadcast.recv(1024)
                                 decode_data = data.decode("utf-8")
                         else:
-                            data = receive_broadcast.recv(1024)
-                            decode_data = data.decode("utf-8")
+                            i += 1
+                            continue
+
 
                     print(decode_data)
                     xor_files = decode_data.split("$")[1]
