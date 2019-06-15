@@ -41,7 +41,7 @@ YOUTUBE_DICT = {
     "NYAN" :  "uKm2KN5gBiY"
 }
 
-SYNCHRONE_REQUEST = 2
+SYNCHRONE_REQUEST = 3
 AMOUNT_CLIENT = int()
 
 # Initializing connection with mySQL
@@ -297,7 +297,6 @@ class ClientThread(threading.Thread):
                 ongoing_files = list()
                 parent_path = os.getcwd().split("\\")
                 parent_path.pop()
-                print("ONGOING REQUEST : {}".format(ONGOING_REQUESTS))
                 for (i,size) in ONGOING_REQUESTS:
                     ongoing_files.append(INDEX_VIDEOS[i])
                     full_size += size
@@ -344,19 +343,18 @@ class ClientThread(threading.Thread):
                                         ip_dest = [ipdest for (ipdest,hash) in CLIENTS_CACHE.items()
                                                    if FILE_ID[each_coding[0]] in hash ]
 
-                                        print("Voici ip_dest : {}".format(ip_dest))
                                         if len(ip_dest) != 0:
                                             for i in ip_dest:
                                                 if i not in D2D_HOST:
                                                     ip_dest = i
                                                     D2D_HOST.append(ip_dest)
+                                                    print(D2D_HOST)
                                                     break
                                 if ip_dest != list():
                                     cursor.execute("SELECT POPULARITY from pir.videos WHERE HASH_ID ='{}'"
                                                    .format(FILE_ID[each_coding[0]]))
                                     pop, = cursor.fetchall()
                                     pop, = pop
-                                    print(pop)
                                     message_bdcast = "[FILES_D2D]${}->{}".format(ip_src, ip_dest)
                                     print(message_bdcast)
                                     global REQUEST_ORIGIN
@@ -364,11 +362,10 @@ class ClientThread(threading.Thread):
                                     dest_data = {'port_dest':D2D_PORT_DEST }
                                     message_dest = "[D2D_RECEIVER]$"+str(dest_data)
                                     print(message_dest)
-
-                                    REQUEST_ORIGIN[ip_dest].send(bytes(message_dest, "utf-8"))
-                                    # REQUEST_ORIGIN[ip_dest].settimeout(10)
+                                    print("Request origin dict : {}".format(REQUEST_ORIGIN))
                                     try:
-                                        data = REQUEST_ORIGIN[ip_dest].recv(4096)
+                                        REQUEST_ORIGIN[ip_dest].send(bytes(message_dest, "utf-8"))
+
 
                                         dest_data = {'ip_dest': ip_dest,
                                                     'port_dest':D2D_PORT_DEST,
@@ -376,17 +373,10 @@ class ClientThread(threading.Thread):
                                                     'pop':pop}
 
                                         message_src = "[D2D_SENDER]$"+str(dest_data)
-
-                                        print("DATA from dest : {}".format(data))
-                                        REQUEST_ORIGIN[ip_dest].settimeout(None)
-                                        if "[READY_D2D]" not in data.decode("utf-8"):
-                                            print("Not in data decoded")
-                                            raise socket.timeout
-                                        else:
-                                            REQUEST_ORIGIN[ip_src].send(bytes(message_src, "utf-8"))
-                                            continue
+                                        REQUEST_ORIGIN[ip_src].send(bytes(message_src, "utf-8"))
+                                        continue
                                     except socket.timeout:
-                                        print("Not sending data to sender")
+                                        print("Didn't receive any answer")
                                         pass
                                       # Goes to the next iteration
                                 """
@@ -436,13 +426,13 @@ class ClientThread(threading.Thread):
                 del D2D_HOST[:] # Theorical
                 print(REQUIRED_FILES)
                 REQUIRED_FILES = dict()
-                print("REUPDATE")
-                SYNCHRONE_REQUEST = 2
+                SYNCHRONE_REQUEST = 3
                 print(SYNCHRONE_REQUEST)
                 print("Temps pris en seconde pour répondre à tout le monde : {}".format(deltat))
                 deltat = float()
+            print("About to assign response")
             response = self.clientsocket.recv(4096)
-            print(response)
+
 
 
 
@@ -456,7 +446,7 @@ while True:
 
 
         tabClients[n] = clientsocket  # on rentre dans le dictionnaire des clients
-
+        print("Client in it")
         newClientThread = ClientThread(ip, port, clientsocket, mutex_handle_client)  # on lance un thread pour gérer le client
         newClientThread.start()
 

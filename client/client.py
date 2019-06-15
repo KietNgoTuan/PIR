@@ -117,7 +117,6 @@ class D2DTCPThreading(threading.Thread):
             d2d_tcp_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             d2d_tcp_connection.bind(('', payload["port_dest"]))
             d2d_tcp_connection.listen(1)
-            self.tcp_connection.send(b"[READY_D2D]")
             d2d_tcp, _ = d2d_tcp_connection.accept()
             data = d2d_tcp.recv(4096)
             print(data)
