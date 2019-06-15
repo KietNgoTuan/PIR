@@ -16,10 +16,10 @@ ALL_TEMP_FILES = dict()
 QUEUE_CACHE = list() # LIST which represents the cache from the less popular to the most one (tuple)
 SIZE_FILE = int()
 D2D_THREAD_LIST = list()
+pop_file = float()
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((HOST,PORT))
-client.settimeout(1)
 ip = client.getsockname()[0]
 
 if DIR_TEMP_NAME not in os.listdir(tempfile.gettempdir()):
@@ -320,7 +320,7 @@ try:
                                             break
 
                                     mp4file.close()
-
+                                pop_file = pop
                                 if len(xor_files) == 1:
                                     os.rename(tempfile.gettempdir() + "/temporary.mp4",
                                               tempfile.gettempdir() + "/" + hashed_message + ".mp4")
@@ -331,21 +331,22 @@ try:
                                     os.remove(tempfile.gettempdir()+"/temporary.mp4") #So far we'll remove this temporary file
 
 
-                                if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO a modifier
-                                    print("QUEUE CACHE : {}".format(QUEUE_CACHE))
-                                    to_delete,_ = QUEUE_CACHE[0]
-                                    os.remove(tempfile.gettempdir() + "/" + to_delete+".mp4")
-                                    QUEUE_CACHE.pop(0)
-                                    del ALL_TEMP_FILES[to_delete]
-
-                                insert((hashed_message,pop))
-                                ALL_TEMP_FILES[hashed_message] = tempfile.gettempdir()+"/"+hashed_message+".mp4"
                 i += 1
             for D2D_THREAD in D2D_THREAD_LIST:
                 if D2D_THREAD.is_alive():
                     print("Still one working thread")
                     D2D_THREAD.join()
             plain_message = input("Fichier à télecharger : ")
+
+            if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO a modifier
+                print("QUEUE CACHE : {}".format(QUEUE_CACHE))
+                to_delete, _ = QUEUE_CACHE[0]
+                os.remove(tempfile.gettempdir() + "/" + to_delete + ".mp4")
+                QUEUE_CACHE.pop(0)
+                del ALL_TEMP_FILES[to_delete]
+
+            insert((hashed_message, pop_file))
+            ALL_TEMP_FILES[hashed_message] = tempfile.gettempdir() + "/" + hashed_message + ".mp4"
 
 except KeyboardInterrupt:
     print("Quitting...")

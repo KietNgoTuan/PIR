@@ -366,18 +366,21 @@ class ClientThread(threading.Thread):
                                     print(message_dest)
 
                                     REQUEST_ORIGIN[ip_dest].send(bytes(message_dest, "utf-8"))
-                                    dest_data = {'ip_dest': ip_dest,
+                                    # REQUEST_ORIGIN[ip_dest].settimeout(10)
+                                    try:
+                                        data = REQUEST_ORIGIN[ip_dest].recv(4096)
+
+                                        dest_data = {'ip_dest': ip_dest,
                                                     'port_dest':D2D_PORT_DEST,
                                                     'port_src':D2D_PORT_SRC,
                                                     'pop':pop}
 
-                                    message_src = "[D2D_SENDER]$"+str(dest_data)
-                                    REQUEST_ORIGIN[ip_dest].settimeout(10)
-                                    try:
+                                        message_src = "[D2D_SENDER]$"+str(dest_data)
 
-                                        data = REQUEST_ORIGIN[ip_dest].recv(4096)
                                         print("DATA from dest : {}".format(data))
+                                        REQUEST_ORIGIN[ip_dest].settimeout(None)
                                         if "[READY_D2D]" not in data.decode("utf-8"):
+                                            print("Not in data decoded")
                                             raise socket.timeout
                                         else:
                                             REQUEST_ORIGIN[ip_src].send(bytes(message_src, "utf-8"))
@@ -437,7 +440,9 @@ class ClientThread(threading.Thread):
                 SYNCHRONE_REQUEST = 2
                 print(SYNCHRONE_REQUEST)
                 print("Temps pris en seconde pour répondre à tout le monde : {}".format(deltat))
+                deltat = float()
             response = self.clientsocket.recv(4096)
+            print(response)
 
 
 
