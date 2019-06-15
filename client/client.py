@@ -57,10 +57,11 @@ receive_broadcast.bind(('', BROADCAST_PORT))
 
 class D2DTCPThreading(threading.Thread):
 
-    def __init__(self, tcp_connection, hash_id):
+    def __init__(self, tcp_connection, hash_id, popularity):
         threading.Thread.__init__(self)
         self.tcp_connection = tcp_connection
         self.hash_id = hash_id
+
 
     def run(self):
         data = self.tcp_connection.recv(4096)
@@ -98,15 +99,17 @@ class D2DTCPThreading(threading.Thread):
                     except UnicodeDecodeError:
                         pass
                 mp4file.close()
+                popularity = payload["pop"]
+                print(popularity)
             d2d_tcp.close()
 
-            if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO a modifier
-                to_delete, _ = QUEUE_CACHE[0]
-                os.remove(tempfile.gettempdir() + "/" + to_delete + ".mp4")
-                QUEUE_CACHE.pop(0)
-                del ALL_TEMP_FILES[to_delete]
-
-            insert((self.hash_id, payload["pop"]))
+            # if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO a modifier
+            #     to_delete, _ = QUEUE_CACHE[0]
+            #     os.remove(tempfile.gettempdir() + "/" + to_delete + ".mp4")
+            #     QUEUE_CACHE.pop(0)
+            #     del ALL_TEMP_FILES[to_delete]
+            #
+            # insert((self.hash_id, payload["pop"]))
 
         elif "[D2D_RECEIVER]" in data_utf8:
             payload = eval(data_utf8.split("$")[1])
@@ -274,7 +277,8 @@ try:
                     if "[FILES_D2D]" in decode_data:
                         if ip in decode_data:
                             D2Dthread = D2DTCPThreading(tcp_connection=client,
-                                                            hash_id= hashed_message)
+                                                            hash_id= hashed_message,
+                                                            popularity = pop_file)
                             D2D_THREAD_LIST.append(D2Dthread)
                             D2Dthread.start()
                             if ip == decode_data.split("$")[1].split("->")[0]:
