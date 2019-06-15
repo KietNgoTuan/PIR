@@ -350,7 +350,7 @@ class ClientThread(threading.Thread):
                                                     D2D_HOST.append(ip_dest)
                                                     print(D2D_HOST)
                                                     break
-                                if ip_dest != list():
+                                if type(ip_dest) != list():
                                     cursor.execute("SELECT POPULARITY from pir.videos WHERE HASH_ID ='{}'"
                                                    .format(FILE_ID[each_coding[0]]))
                                     pop, = cursor.fetchall()
@@ -364,9 +364,8 @@ class ClientThread(threading.Thread):
                                     print(message_dest)
                                     print("Request origin dict : {}".format(REQUEST_ORIGIN))
                                     try:
+                                        print("Dest : {}".format(ip_dest))
                                         REQUEST_ORIGIN[ip_dest].send(bytes(message_dest, "utf-8"))
-
-
                                         dest_data = {'ip_dest': ip_dest,
                                                     'port_dest':D2D_PORT_DEST,
                                                     'port_src':D2D_PORT_SRC,
