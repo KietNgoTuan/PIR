@@ -1,20 +1,20 @@
 import os
-import copy
-import shutil
 import multiprocessing
+import time
 
-# PROCESS_ENCODE = multiprocessing.cpu_count()
 PROCESS_ENCODE = multiprocessing.cpu_count()
 lock_result = multiprocessing.Lock()
 
 
-
-def encode_data(debut,fin,result, ns):
-    print("Longueur tab : {}".format(len(ns)))
-    for byte in range(debut,fin):
-        # for file in ns.bytelist:
-        #     result[byte] ^= file[byte]
-        pass
+def encode_data(size,result, ns):
+    i = 0
+    for byte in range(size):
+        for file in ns:
+            try:
+                result[byte] ^= file[i]
+            except:
+                print("Sortie d'error : {}".format(byte))
+        i +=1
 
 
 def get_largest_file(all_files):
@@ -51,15 +51,15 @@ def encode(all_files, f3):
     :return: outfile
     """
     if __name__ == "__main__":
-
+        t_debut = time.time()
         path , max_size = get_largest_file(all_files)
-        result = multiprocessing.Array('b', max_size)
         list_file = list()
         for each_path in all_files:
             f = open(each_path, 'rb')
             list_file.append(f)
         process_list = list()
         bytelist = list()
+        result = bytearray(max_size)
         manager = multiprocessing.Manager()
         ns = manager.Namespace()
         print(PROCESS_ENCODE)
@@ -67,36 +67,37 @@ def encode(all_files, f3):
             for each_elt in range(len(all_files)):
                 bytelist.append(bytearray(list_file[each_elt].read()))
             frag = get_all_frag_threading(max_size)
-            print(frag)
-            i= 0
+            ns.result = [bytearray(frag[i]) for i in range(1, len(frag))]
+            i = int()
             while i < len(frag)-1:
                 temp_list = list()
                 for elt in bytelist:
                     try:
                         _ = elt[frag[i+1]-1]
-                        print((frag[i],frag[i+1]))
                         temp_list.append(elt[frag[i]:frag[i+1]])
                     except IndexError:
-                        print("Problème d'index")
                         pass
                 ns.bytelist = temp_list
-                print(len(ns.bytelist))
                 p = multiprocessing.Process(
                     target = encode_data,
-                    args = (frag[i],frag[i+1],result,ns.bytelist)
+                    args = (frag[i+1]-frag[i],ns.result[i] ,ns.bytelist)
                 )
                 process_list.append(p)
                 p.start()
                 i += 1
+            for p in process_list:
+                p.join()
 
-        for p in process_list:
-            p.join()
-        # print(result[:])
-        # file_out.write(result[:])
-
+            for i in range(len(frag)-1):
+                if frag[i] == 0:
+                    result[frag[i]:frag[i+1]] = ns.result[i]
+                else:
+                    result[frag[i]+1:frag[i+1]] = ns.result[i]
+            file_out.write(result)
         for f in list_file:
             f.close()
+        print("Temps final : {}".format(time.time()-t_debut))
 
 
-encode(["C:/Users/matth/PycharmProjects/PIR/videos/APPLE.mp4", "C:/Users/matth/PycharmProjects/PIR/videos/RINGTONE.mp4"],
+encode(["C:/Users/matth/PycharmProjects/PIR/videos/BETTER.mp4", "C:/Users/matth/PycharmProjects/PIR/videos/CACHE.mp4"],
 "C:/Users/matth/PycharmProjects/PIR/videos/sending.mp4")
