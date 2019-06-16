@@ -127,7 +127,7 @@ def decode(all_files, to_decode, f3):
     depadding(f3, os.stat("C:/Users/matth/PycharmProjects/PIR/videos/TOUR.mp4").st_size)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": # REquired for multiprocessing
     encode(["C:/Users/matth/PycharmProjects/PIR/videos/TOUR.mp4", "C:/Users/matth/PycharmProjects/PIR/videos/ADIEU.mp4"],
     "C:/Users/matth/PycharmProjects/PIR/videos/sending.mp4")
 
