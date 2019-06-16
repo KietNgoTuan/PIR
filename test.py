@@ -4,20 +4,17 @@ import shutil
 import multiprocessing
 
 # PROCESS_ENCODE = multiprocessing.cpu_count()
-PROCESS_ENCODE = 1
+PROCESS_ENCODE = multiprocessing.cpu_count()
 lock_result = multiprocessing.Lock()
 
 
 
 def encode_data(debut,fin,result, ns):
-    print("Lancement thread")
-    print(debut)
-    print(fin)
-    print(type(ns.bytelist))
+    print("Longueur tab : {}".format(len(ns.bytelist)))
     for byte in range(debut,fin):
-        print(byte)
-        for file in ns.bytelist:
-            result[byte] ^= file[byte]
+        # for file in ns.bytelist:
+        #     result[byte] ^= file[byte]
+        pass
 
 
 def get_largest_file(all_files):
@@ -34,25 +31,16 @@ def get_largest_file(all_files):
                 path = i
     return path, max
 
-def padding(f1,f2):
-    dif = os.stat(f2).st_size-os.stat(f1).st_size
-    tab = bytearray(abs(dif))
-    for i in range(abs(dif)):
-        tab[i]=0
 
-    file2 = open(f1 , 'ab+')
-    file2.write(tab)
-    file2.close()
-
-def get_all_frag_threading(size, ref=PROCESS_ENCODE):
+def get_all_frag_threading(size, ref=PROCESS_ENCODE+1):
     size_list = list()
     value = 0
     for i in range(ref):
         if i == ref-1:
             size_list.append(size)
             return size_list
-        value += int(size/ref)
         size_list.append(value)
+        value += int(size / ref)
 
 
 
@@ -65,61 +53,50 @@ def encode(all_files, f3):
     if __name__ == "__main__":
 
         path , max_size = get_largest_file(all_files)
-        print(path)
-        print(max_size)
-        temp_list = copy.deepcopy(all_files)
-        print(temp_list)
-        temp_list.remove(path)
-        print(temp_list)
-        temp_file_list = list()
-
-        for each_path in range(len(temp_list)):
-            temp_file = os.getcwd()+"/temp_file/"+temp_list[each_path].split("/")[-1].split(".")[0]+"_temp.mp4"
-            temp_file_list.append(temp_file)
-            shutil.copyfile(temp_list[each_path], temp_file_list[each_path],  follow_symlinks=True)
-            padding(temp_file_list[each_path], path)
-
-        temp_file_list.append(path)
-        print("Before...")
         result = multiprocessing.Array('b', max_size)
-        print("After")
         list_file = list()
-        for each_path in temp_file_list:
+        for each_path in all_files:
             f = open(each_path, 'rb')
             list_file.append(f)
         process_list = list()
-        print("Manager before")
+        bytelist = list()
         manager = multiprocessing.Manager()
         ns = manager.Namespace()
-        print("After")
-        ns.bytelist = list()
         print(PROCESS_ENCODE)
         with open(f3, 'wb') as file_out:
             for each_elt in range(len(all_files)):
-                ns.bytelist.append(bytearray(list_file[each_elt].read()))
+                bytelist.append(bytearray(list_file[each_elt].read()))
             frag = get_all_frag_threading(max_size)
-            # for i in range(len(frag)-1):
-            # p = multiprocessing.Process(
-            #     target = encode_data,
-            #     args = (frag[i],frag[i+1],result,ns)
-            # )
-            p = multiprocessing.Process(
-                target=encode_data,
-                args=(0, max_size, result, ns,)
-            )
-            p.start()
-            process_list.append(p)
+            print(frag)
+            i= 0
+            while i < len(frag)-1:
+                temp_list = list()
+                for elt in bytelist:
+                    try:
+                        _ = elt[frag[i+1]-1]
+                        print((frag[i],frag[i+1]))
+                        temp_list.append(elt[frag[i]:frag[i+1]])
+                    except IndexError:
+                        print("Problème d'index")
+                        pass
+                ns.bytelist = temp_list
+                print(len(ns.bytelist))
+                p = multiprocessing.Process(
+                    target = encode_data,
+                    args = (frag[i],frag[i+1],result,ns)
+                )
+                process_list.append(p)
+                p.start()
+                i += 
+
         for p in process_list:
             p.join()
-
-            file_out.write(result)
+        # print(result[:])
+        # file_out.write(result[:])
 
         for f in list_file:
             f.close()
-        temp_file_list.pop()
-        print("Temp file list : {}".format(temp_file_list))
-        for file in temp_file_list:
-            os.remove(file)
+
 
 encode(["C:/Users/matth/PycharmProjects/PIR/videos/APPLE.mp4", "C:/Users/matth/PycharmProjects/PIR/videos/RINGTONE.mp4"],
 "C:/Users/matth/PycharmProjects/PIR/videos/sending.mp4")
