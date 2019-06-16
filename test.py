@@ -16,11 +16,8 @@ def encode_data(debut,fin,result, ns):
     print(type(ns.bytelist))
     for byte in range(debut,fin):
         print(byte)
-        if byte == (debut+fin)/2:
-            print("Flex")
         for file in ns.bytelist:
             result[byte] ^= file[byte]
-    print("Fin thread")
 
 
 def get_largest_file(all_files):
