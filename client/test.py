@@ -73,5 +73,6 @@ def encode(all_files, f3):
         os.remove(file)
     print("Fin encode : {}".format(time.time()-t_debut))
 
-encode(["C:/Users/matth/PycharmProjects/PIR/videos/BETTER.mp4", "C:/Users/matth/PycharmProjects/PIR/videos/CACHE.mp4"],
-"C:/Users/matth/PycharmProjects/PIR/videos/sending.mp4")
+
+encode(["C:/Users/matth/PycharmProjects/PIR/videos/TOUR.mp4", "C:/Users/matth/PycharmProjects/PIR/videos/ADIEU.mp4"],
+       "C:/Users/matth/PycharmProjects/PIR/videos/sending.mp4")
