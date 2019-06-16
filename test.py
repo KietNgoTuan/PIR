@@ -10,7 +10,7 @@ lock_result = multiprocessing.Lock()
 
 
 def encode_data(debut,fin,result, ns):
-    print("Longueur tab : {}".format(len(ns.bytelist)))
+    print("Longueur tab : {}".format(len(ns)))
     for byte in range(debut,fin):
         # for file in ns.bytelist:
         #     result[byte] ^= file[byte]
@@ -83,11 +83,11 @@ def encode(all_files, f3):
                 print(len(ns.bytelist))
                 p = multiprocessing.Process(
                     target = encode_data,
-                    args = (frag[i],frag[i+1],result,ns)
+                    args = (frag[i],frag[i+1],result,ns.bytelist)
                 )
                 process_list.append(p)
                 p.start()
-                i += 
+                i += 1
 
         for p in process_list:
             p.join()
