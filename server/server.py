@@ -17,7 +17,7 @@ BROADCAST_PORT = 44444
 COEFF_LAN = 1.05
 
 D2D_PORT_SRC = 45000
-D2D_PORT_DEST = 45454
+D2D_PORT_DEST = [45454, 45460, 45464] # Un client peut gérer jusqu'à 3 D2D (MAX)
 
 INDEX_VIDEOS = dict()
 INDEX_REQUEST = list()
@@ -29,6 +29,8 @@ ONGOING_REQUESTS = set()
 REQUEST_ORIGIN = dict()
 path_to_send = str()
 D2D_HOST = list()
+D2D_HOST_PORT = dict()
+
 
 PRIVATE_YOUTUBE_KEY = "AIzaSyDaKk0TDBSmnHSqmPXpmRCV2PApz8rJzqo"
 QUITTING = "7694f4a66316e53c8cdd9d9954bd611d"
@@ -119,6 +121,19 @@ def depadding(f,size):
     fi.write(temp)
     fi.close()
 
+def get_ideal_d2d(list_ip):
+    """
+    takes a list of ip and find the one with the largenst amount of opened ports
+    :return: THE ip
+    """
+    max_val = 0
+    ideal_ip = str()
+    for each_ip in list_ip:
+        if len(D2D_PORT_DEST[each_ip]) > max_val:
+            ideal_ip = each_ip
+    return ideal_ip
+
+
 
 def get_largest_file(all_files):
     """
@@ -167,7 +182,6 @@ def encode(all_files, f3):
             byte_list.append(bytearray(list_file[each_elt].read()))
 
         for byte1 in range(max_size):
-            result[byte1] = 0
             for file in byte_list:
                 result[byte1] ^= file[byte1]
         file_out.write(result)
@@ -266,6 +280,10 @@ class ClientThread(threading.Thread):
                 broadcast_answer.bind(('', BROADCAST_PORT))
                 broadcast_answer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
+                # Reinitialiser les ports de D2D
+                for each_ip in CLIENTS_CACHE.keys():
+                    D2D_HOST_PORT[each_ip] = D2D_PORT_DEST
+
                 print("Index Request : {}".format(INDEX_REQUEST))
                 INDEX_REQUEST.sort(key=lambda x: x[0])
                 index_files = list()
@@ -333,8 +351,7 @@ class ClientThread(threading.Thread):
                                 # Create D2D communication (possibly)
                                 ip_src = REQUIRED_FILES[FILE_ID[each_coding[0]]][0]
                                 ip_dest = list()
-                                print(CLIENTS_CACHE)
-                                print(CLIENTS_CACHE.items())
+                                port_dest = int()
                                 for cached_file in CLIENTS_CACHE.values():
                                     print(cached_file)
                                     print(FILE_ID[each_coding[0]])
@@ -344,12 +361,11 @@ class ClientThread(threading.Thread):
                                                    if FILE_ID[each_coding[0]] in hash ]
 
                                         if len(ip_dest) != 0:
-                                            for i in ip_dest:
-                                                if i not in D2D_HOST:
-                                                    ip_dest = i
-                                                    D2D_HOST.append(ip_dest)
-                                                    print(D2D_HOST)
-                                                    break
+                                            ip_dest = get_ideal_d2d(ip_dest)
+                                            port_dest = D2D_HOST_PORT[ip_dest][0]
+                                            print("ip_dest and port_dest : {},{}".format(ip_dest,port_dest))
+                                            D2D_HOST_PORT[ip_dest].pop(0)
+
                                 if type(ip_dest) != list():
                                     cursor.execute("SELECT POPULARITY from pir.videos WHERE HASH_ID ='{}'"
                                                    .format(FILE_ID[each_coding[0]]))
@@ -359,7 +375,7 @@ class ClientThread(threading.Thread):
                                     print(message_bdcast)
                                     global REQUEST_ORIGIN
                                     broadcast_answer.sendto(bytes(message_bdcast, "utf-8"), ("<broadcast>", 40000))
-                                    dest_data = {'port_dest':D2D_PORT_DEST }
+                                    dest_data = {'port_dest':port_dest}
                                     message_dest = "[D2D_RECEIVER]$"+str(dest_data)
                                     print(message_dest)
                                     print("Request origin dict : {}".format(REQUEST_ORIGIN))
@@ -367,7 +383,7 @@ class ClientThread(threading.Thread):
                                         print("Dest : {}".format(ip_dest))
                                         REQUEST_ORIGIN[ip_dest].send(bytes(message_dest, "utf-8"))
                                         dest_data = {'ip_dest': ip_dest,
-                                                    'port_dest':D2D_PORT_DEST,
+                                                    'port_dest':port_dest,
                                                     'port_src':D2D_PORT_SRC,
                                                     'pop':pop}
 
@@ -423,10 +439,10 @@ class ClientThread(threading.Thread):
                 del index_files[:]
                 del index_rest[:]
                 del D2D_HOST[:] # Theorical
+                del D2D_HOST_PORT[:]
                 print(REQUIRED_FILES)
                 REQUIRED_FILES = dict()
                 SYNCHRONE_REQUEST = 3
-                print(SYNCHRONE_REQUEST)
                 print("Temps pris en seconde pour répondre à tout le monde : {}".format(deltat))
                 deltat = float()
             print("About to assign response")
