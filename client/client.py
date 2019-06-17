@@ -45,7 +45,7 @@ class D2DTCPThreading(threading.Thread):
         if "[D2D_SENDER]" in data_utf8:
             amount_of_try = 5
             payload = eval(data_utf8.split("$")[1])
-            d2d_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            d2d_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.SO_REUSEADDR)
             d2d_tcp.bind(('', payload["port_src"]))
 
             while (amount_of_try >= 0):
@@ -74,7 +74,6 @@ class D2DTCPThreading(threading.Thread):
                     except UnicodeDecodeError:
                         pass
                 mp4file.close()
-                popularity = payload["pop"]
             print("Temps nécessaire : {}".format(time.time()-self.time_debut))
             d2d_tcp.close()
 

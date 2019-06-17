@@ -23,7 +23,7 @@ def get_ideal_d2d(list_ip):
     for each_ip in list_ip:
         if len(D2D_HOST_PORT[each_ip]) >= max_val:
             ideal_ip = each_ip
-    print(ideal_ip)
+            max_val = len(D2D_HOST_PORT[each_ip])
     return ideal_ip
 
 
@@ -298,11 +298,11 @@ class ClientThread(threading.Thread):
                                             ip_dest = get_ideal_d2d(ip_dest)
                                             if len(D2D_HOST_PORT[ip_dest]) != 0:
                                                 port_dest = D2D_HOST_PORT[ip_dest][0]
-                                                print("ip_dest and port_dest : {},{}".format(ip_dest, port_dest))
                                                 a = copy.deepcopy(D2D_HOST_PORT[ip_dest])
                                                 a.pop(0)
                                                 D2D_HOST_PORT[ip_dest] = a
                                                 print(D2D_HOST_PORT)
+                                                break
 
                                 if type(ip_dest) != list:
                                     cursor.execute("SELECT POPULARITY from pir.videos WHERE HASH_ID ='{}'"
