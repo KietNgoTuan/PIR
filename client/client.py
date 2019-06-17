@@ -31,10 +31,11 @@ def insert(tuple):
 
 class D2DTCPThreading(threading.Thread):
 
-    def __init__(self, tcp_connection, hash_id, popularity):
+    def __init__(self, tcp_connection, hash_id, time):
         threading.Thread.__init__(self)
         self.tcp_connection = tcp_connection
         self.hash_id = hash_id
+        self.time_debut = time
 
 
     def run(self):
@@ -74,7 +75,7 @@ class D2DTCPThreading(threading.Thread):
                         pass
                 mp4file.close()
                 popularity = payload["pop"]
-                print(popularity)
+            print("Temps nécessaire : {}".format(time.time()-self.time_debut))
             d2d_tcp.close()
 
             # if len(QUEUE_CACHE) == 3:  # Fonctionnement de la FIFO a modifier
@@ -309,17 +310,11 @@ if __name__ == "__main__":
                             if ip in decode_data:
                                 D2Dthread = D2DTCPThreading(tcp_connection=client,
                                                                 hash_id= hashed_message,
-                                                                popularity = pop_file)
+                                                                time = time_init)
                                 D2D_THREAD_LIST.append(D2Dthread)
                                 D2Dthread.start()
-                                if ip == decode_data.split("$")[1].split("->")[0]:
-                                    D2Dthread.join()
-                                    break
-                                i += 1
-                                continue
-                            else:
-                                i += 1
-                                continue
+                            i += 1
+                            continue
 
 
                         print(decode_data)
@@ -361,7 +356,7 @@ if __name__ == "__main__":
                                                   tempfile.gettempdir() + "/" + hashed_message + ".mp4")
                                         print("Temps pris pour réception fichier : {}".format((time.time()-time_init)))
                                     else:
-                                        decode([ALL_TEMP_FILES[file] for (file,_,_) in decode_xor_files] ,tempfile.gettempdir()+"/temporary.mp4", tempfile.gettempdir()+"/"+ hashed_message+"aa.mp4")
+                                        decode([ALL_TEMP_FILES[file] for (file,_,_) in decode_xor_files] ,tempfile.gettempdir()+"/temporary.mp4", tempfile.gettempdir()+"/"+ hashed_message+".mp4")
                                         print("Temps pris pour réception fichier : {}".format((time.time()-time_init)))
                                         os.remove(tempfile.gettempdir()+"/temporary.mp4") #So far we'll remove this temporary file
 

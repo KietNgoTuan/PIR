@@ -9,6 +9,7 @@ import requests
 import mysql.connector # Must be manually installed (pip install mysql-connector)
 import time
 import multiprocessing
+import copy
 
 
 def get_ideal_d2d(list_ip):
@@ -18,9 +19,11 @@ def get_ideal_d2d(list_ip):
     """
     max_val = 0
     ideal_ip = str()
+    print("Host port : {}".format(D2D_HOST_PORT))
     for each_ip in list_ip:
-        if len(D2D_PORT_DEST[each_ip]) > max_val:
+        if len(D2D_HOST_PORT[each_ip]) >= max_val:
             ideal_ip = each_ip
+    print(ideal_ip)
     return ideal_ip
 
 
@@ -291,11 +294,15 @@ class ClientThread(threading.Thread):
                                                    if FILE_ID[each_coding[0]] in hash ]
 
                                         if len(ip_dest) != 0:
+                                            print("ip dest to get ideal from : {}".format(ip_dest))
                                             ip_dest = get_ideal_d2d(ip_dest)
                                             if len(D2D_HOST_PORT[ip_dest]) != 0:
                                                 port_dest = D2D_HOST_PORT[ip_dest][0]
                                                 print("ip_dest and port_dest : {},{}".format(ip_dest, port_dest))
-                                                D2D_HOST_PORT[ip_dest].pop(0)
+                                                a = copy.deepcopy(D2D_HOST_PORT[ip_dest])
+                                                a.pop(0)
+                                                D2D_HOST_PORT[ip_dest] = a
+                                                print(D2D_HOST_PORT)
 
                                 if type(ip_dest) != list:
                                     cursor.execute("SELECT POPULARITY from pir.videos WHERE HASH_ID ='{}'"
@@ -365,7 +372,7 @@ class ClientThread(threading.Thread):
                         deltat += inter_t
 
                 broadcast_answer.close()
-                SYNCHRONE_REQUEST = 2
+                SYNCHRONE_REQUEST = 4
 
                 del INDEX_REQUEST[:]
                 del MATRIX_CODAGE[:]
@@ -422,7 +429,7 @@ if __name__ == "__main__":
         "TOUR": "WrsFXgQk5UI"
     }
 
-    SYNCHRONE_REQUEST = 2
+    SYNCHRONE_REQUEST = 4
     AMOUNT_CLIENT = int()
 
     # Initializing connection with mySQL

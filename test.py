@@ -2,8 +2,7 @@ import os
 import multiprocessing
 import time
 
-PROCESS_ENCODE = multiprocessing.cpu_count()
-lock_result = multiprocessing.Lock()
+PROCESS_ENCODE = multiprocessing.cpu_count()-2
 
 
 
@@ -128,8 +127,6 @@ def decode(all_files, to_decode, f3):
 
 
 if __name__ == "__main__": # REquired for multiprocessing
-    encode(["C:/Users/matth/PycharmProjects/PIR/videos/TOUR.mp4", "C:/Users/matth/PycharmProjects/PIR/videos/ADIEU.mp4"],
+    encode(["C:/Users/matth/PycharmProjects/PIR/videos/PSYCHO.mp4", "C:/Users/matth/PycharmProjects/PIR/videos/BETTER.mp4"],
     "C:/Users/matth/PycharmProjects/PIR/videos/sending.mp4")
 
-    decode(["C:/Users/matth/PycharmProjects/PIR/videos/ADIEU.mp4"], "C:/Users/matth/PycharmProjects/PIR/videos/sending.mp4",
-           "C:/Users/matth/PycharmProjects/PIR/videos/multiprocessing.mp4")
