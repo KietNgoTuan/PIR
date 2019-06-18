@@ -26,8 +26,6 @@ def get_ideal_d2d(list_ip):
             max_val = len(D2D_HOST_PORT[each_ip])
     return ideal_ip
 
-
-
 def get_largest_file(all_files):
     """
     Take all path and return its size and its position in the list
@@ -269,7 +267,6 @@ class ClientThread(threading.Thread):
                             broadcast_answer.sendto(f, ("<broadcast>", 40000))
                             f = file_in.read(1024)
                     inter_t = (time.time() - tdebut)
-                    global deltat
                     deltat += inter_t
                     file_in.close()
 
@@ -355,6 +352,7 @@ class ClientThread(threading.Thread):
                         print("Message regarding files : {}".format(message))
                         broadcast_answer.sendto(bytes(message, "utf-8"),  ("<broadcast>", 40000))
                         tdebut = time.time()
+                        print("Time debut XOR : {}".format(tdebut))
 
                         with open(path_to_send, 'rb') as file_in:
                             f = file_in.read(1024)
@@ -367,11 +365,12 @@ class ClientThread(threading.Thread):
                         except FileNotFoundError:
                             pass
                         inter_t = (time.time()-tdebut)
+                        print(inter_t)
                         deltat += inter_t
+
 
                 broadcast_answer.close()
                 SYNCHRONE_REQUEST = 4
-
                 del INDEX_REQUEST[:]
                 del MATRIX_CODAGE[:]
                 del index_files[:]
@@ -382,6 +381,7 @@ class ClientThread(threading.Thread):
                 REQUIRED_FILES = dict()
                 print("Temps pris en seconde pour répondre à tout le monde : {}".format(deltat))
                 deltat = float()
+
                 print("Temps pris en seconde pour répondre à tout le monde : {}".format(deltat))
                 deltat = float()
             print("About to assign response")
@@ -505,8 +505,5 @@ if __name__ == "__main__":
             for i in range(n):
                 tabClients[i].close()
             sys.exit(0)
-
-
-
 
 
