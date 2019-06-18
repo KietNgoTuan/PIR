@@ -45,7 +45,8 @@ class D2DTCPThreading(threading.Thread):
         if "[D2D_SENDER]" in data_utf8:
             amount_of_try = 5
             payload = eval(data_utf8.split("$")[1])
-            d2d_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.SO_REUSEADDR)
+            d2d_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            d2d_tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             d2d_tcp.bind(('', payload["port_src"]))
 
             while (amount_of_try >= 0):
@@ -89,6 +90,7 @@ class D2DTCPThreading(threading.Thread):
             payload = eval(data_utf8.split("$")[1])
             # use of payload["port_dest"]
             d2d_tcp_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            d2d_tcp_connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             d2d_tcp_connection.bind(('', payload["port_dest"]))
             d2d_tcp_connection.listen(1)
             d2d_tcp, _ = d2d_tcp_connection.accept()

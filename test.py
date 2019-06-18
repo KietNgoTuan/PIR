@@ -2,7 +2,7 @@ import os
 import multiprocessing
 import time
 
-PROCESS_ENCODE = multiprocessing.cpu_count()-2
+PROCESS_ENCODE = multiprocessing.cpu_count()
 
 
 
