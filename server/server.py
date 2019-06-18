@@ -231,12 +231,10 @@ class ClientThread(threading.Thread):
                         index_rest.append(index[0])
                 # res to be send (optimal one)
                 res = MatrixCodage(MATRIX_CODAGE, index_files)
-                print(" ir "+str(index_rest))
-                print("if"+str(index_files))
                 if len(index_rest) != 0:
                     for i in index_rest:
                         res.append([i])
-
+                res.sort(key=lambda x:len(x))
                 print("RES : {}".format(res))
                 message = "[SENDINGS]$"+str(len(res))
                 print("Message : {}".format(message))
