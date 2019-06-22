@@ -51,7 +51,7 @@ Execute it using python 3 or later version
    
    Install mysql and create a schema named **PIR** and a database
    named **videos** as it follows : 
-   ![database structure](C://Images/sql_database.png)
+   ![database structure](C:/Users/matth/Pictures/sql_database.png)
    After that, lauch the database server and modify the different information in the server code regarding the connection parameter if required (if you get a message saying : cannot reach database then modify the parameters line 448)
    
    Moreover in order to get realistic popularity coefficient we directly use the Youtube Data APIv3
